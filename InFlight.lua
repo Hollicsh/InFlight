@@ -324,44 +324,76 @@ function InFlight:LoadBulk()
     InFlightDB = { profiles = { Default = tempDB }}
   end
 
-  -- Check that this is the right version of the client
-  if select(4, GetBuildInfo()) < 80200 then
-    Print(L["AddonDisabled"])
-    DisableAddOn("InFlight")
-    return
-  end
 
-  -- Check that this is the right version of the database to avoid corruption
-  if InFlightDB.version ~= "retail" then
+
+
+  -- Flag to clear player save data, if corrupted data has been introduced into the
+  -- player save data from a bug in the game or this addon, and therefore the player
+  -- save data needs to be reset.
+  -- Duplicates of updated default data will be automatically removed from the player
+  -- save data by the metatable
+  local resetDB = false
+
+  -- post-cata
+  if select(4, GetBuildInfo()) >= 40000 then
+  
+    if InFlightDB.dbinit ~= 920 then
+      resetDB = true
+      InFlightDB.dbinit = 920
+    end
+  
+    -- Check that this is the right version of the database to avoid corruption
+    if InFlightDB.version ~= "post-cata" then
+      -- Used to be called "retail", so we only reset flight points if it was anything else.
+      if InFlightDB.version ~= "retail" then
+        resetDB = true
+      end
+      InFlightDB.version = "post-cata"
+    end
+  
+  -- pre-cata
+  else
+  
+    if InFlightDB.dbinit ~= 1150 then
+      resetDB = true
+      InFlightDB.dbinit = 1150
+    end
+    
+    -- Check that this is the right version of the database to avoid corruption
+    if InFlightDB.version ~= "pre-cata" then
+      -- Used to be called "classic" or "classic-era", so we only reset flight points if it was anything else.
+      if InFlightDB.version ~= "classic" and InFlightDB.version ~= "classic-era" then
+        resetDB = true
+      end
+      InFlightDB.version = "pre-cata"
+    end
+    
+  end
+  
+  if resetDB and not debug then
     InFlightDB.global = nil
-    InFlightDB.version = "retail"
-  end
-
-  -- Update default data
-  if InFlightDB.dbinit ~= 920 or debug then
-    InFlightDB.dbinit = 920
     InFlightDB.upload = nil
-    Print(L["DefaultsUpdated"])
-
-    if debug then
-      for faction, t in pairs(self.defaults.global) do
-        local count = 0
-        for src, dt in pairs(t) do
-          for dst, dtime in pairs(dt) do
-            if dst ~= "name" then
-              count = count + 1
-            end
+  end
+  
+  
+  if debug then
+    for faction, t in pairs(self.defaults.global) do
+      local count = 0
+      for src, dt in pairs(t) do
+        for dst, dtime in pairs(dt) do
+          if dst ~= "name" then
+            count = count + 1
           end
         end
-
-        PrintD(faction, "|cff208020-|r", count, "|cff208020flights|r")
       end
-    else
-      InFlightDB.global = nil
+
+      PrintD(faction, "|cff208020-|r", count, "|cff208020flights|r")
     end
   end
 
-  -- Sanitise data
+
+
+  -- If player save data deviates too much from stock defautls, override with stock defaults.
   if InFlightDB.global then
     local defaults = self.defaults.global
     for faction, t in pairs(InFlightDB.global) do
@@ -416,7 +448,7 @@ function InFlight:LoadBulk()
   -- Create profile and flight time databases
   local faction = UnitFactionGroup("player")
   if not debug then
-    InFlight.defaults.global[faction == "Alliance" and "Horde" or "Alliance"] = nil
+    self.defaults.global[faction == "Alliance" and "Horde" or "Alliance"] = nil
   end
   self.db = LibStub("AceDB-3.0"):New("InFlightDB", self.defaults, true)
   db = self.db.profile
