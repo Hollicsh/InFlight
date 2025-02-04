@@ -11,7 +11,7 @@ local gtt = GameTooltip
 if C_AddOns.IsAddOnLoaded("InFlight_Load") then
   print("|cffff0000\"InFlight_Load\" is no longer required for \"InFlight\". You can disable or remove it.|r")
   C_AddOns.DisableAddOn("InFlight_Load")
-  
+
   -- Undo InFlight_Load.
   InFlight = nil
 end
@@ -70,6 +70,8 @@ end
 
 
 
+
+
 -- Support for flightpaths that are started by gossip options.
 local t = {
   [L["Amber Ledge"]]                = {{ find = L["AmberLedgeGossip"],        s = "Amber Ledge",                d = "Transitus Shield (Scenic Route)" }},
@@ -93,9 +95,9 @@ local t = {
   [L["Valgarde"]]                   = {{ find = L["ValgardeGossip"],          s = "Valgarde",                   d = "Explorers' League Outpost" }},
 }
 
-hooksecurefunc(_G.GossipOptionButtonMixin, "OnClick", function(this, button)
-  local elementData = this:GetElementData()
-  if elementData.buttonType ~= _G.GOSSIP_BUTTON_TYPE_OPTION then
+
+local function PrepareMiscFlight(buttonText)
+  if not buttonText or buttonText == "" then
     return
   end
 
@@ -105,14 +107,9 @@ hooksecurefunc(_G.GossipOptionButtonMixin, "OnClick", function(this, button)
     return
   end
 
-  local text = this:GetText()
-  if not text or text == "" then
-    return
-  end
-
   local source, destination
   for _, sz in ipairs(tsz) do
-    if strfind(text, sz.find, 1, true) then
+    if strfind(buttonText, sz.find, 1, true) then
       source = sz.s
       destination = sz.d
       break
@@ -122,7 +119,41 @@ hooksecurefunc(_G.GossipOptionButtonMixin, "OnClick", function(this, button)
   if source and destination then
     InFlight:StartMiscFlight(source, destination)
   end
-end)
+end
+
+
+-- For Immersion addon.
+if C_AddOns.IsAddOnLoaded("Immersion") then
+  local immersionHookFrame = CreateFrame("Frame")
+  immersionHookFrame:SetScript("OnEvent", function(_, event)
+    if ImmersionFrame and ImmersionFrame.TitleButtons then
+      local children = {ImmersionFrame.TitleButtons:GetChildren()}
+      for i, child in ipairs(children) do
+        if not child.inFlightHook then
+          child:HookScript("OnClick", function(this)
+            PrepareMiscFlight(this:GetText())
+          end)
+          child.inFlightHook = true
+        end
+      end
+    end
+  end)
+  immersionHookFrame:RegisterEvent("GOSSIP_SHOW")
+  immersionHookFrame:RegisterEvent("QUEST_GREETING")
+  immersionHookFrame:RegisterEvent("QUEST_PROGRESS")
+
+-- Without Immersion addon.
+else
+  hooksecurefunc(_G.GossipOptionButtonMixin, "OnClick", function(this)
+    local elementData = this:GetElementData()
+    if elementData.buttonType ~= _G.GOSSIP_BUTTON_TYPE_OPTION then
+      return
+    end
+    PrepareMiscFlight(this:GetText())
+  end)
+end
+
+
 
 
 
@@ -336,12 +367,12 @@ function InFlight:LoadBulk()
 
   -- post-cata
   if select(4, GetBuildInfo()) >= 40000 then
-  
+
     if InFlightDB.dbinit ~= 920 then
       resetDB = true
       InFlightDB.dbinit = 920
     end
-  
+
     -- Check that this is the right version of the database to avoid corruption
     if InFlightDB.version ~= "post-cata" then
       -- Used to be called "retail", so we only reset flight points if it was anything else.
@@ -350,15 +381,15 @@ function InFlight:LoadBulk()
       end
       InFlightDB.version = "post-cata"
     end
-  
+
   -- pre-cata
   else
-  
+
     if InFlightDB.dbinit ~= 1150 then
       resetDB = true
       InFlightDB.dbinit = 1150
     end
-    
+
     -- Check that this is the right version of the database to avoid corruption
     if InFlightDB.version ~= "pre-cata" then
       -- Used to be called "classic" or "classic-era", so we only reset flight points if it was anything else.
@@ -367,15 +398,15 @@ function InFlight:LoadBulk()
       end
       InFlightDB.version = "pre-cata"
     end
-    
+
   end
-  
+
   if resetDB and not debug then
     InFlightDB.global = nil
     InFlightDB.upload = nil
   end
-  
-  
+
+
   if debug then
     for faction, t in pairs(self.defaults.global) do
       local count = 0
