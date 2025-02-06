@@ -1,4 +1,4 @@
-## Interface: 110007
+## Interface: 11506
 ## Version: @project-version@
 ## Title: InFlight
 ## Author: TotalPackage, Deranjata, LudiusMaximus
@@ -14,7 +14,7 @@
 ## Notes-zhCN: 您的航班路径的状态栏计时器
 ## Notes-zhTW: 您的航班路徑的狀態欄計時器
 
-## OptionalDeps: InFlight_Load, Immersion
+## OptionalDeps: InFlight_Load
 ## SavedVariables: InFlightDB
 
 ## X-Curse-Project-ID: 20147

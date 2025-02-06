@@ -26,3 +26,5 @@ embeds.xml
 Locales\Locales.xml
 InFlight.lua
 Defaults.lua
+
+Converter.lua

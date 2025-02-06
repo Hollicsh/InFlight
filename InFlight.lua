@@ -424,7 +424,8 @@ function InFlight:LoadBulk()
 
 
 
-  -- If player save data deviates too much from stock defautls, override with stock defaults.
+  -- If player save data is (almost) the same as the corresponding stock default,
+  -- remove player save data by setting it to the corresponsing stock default.
   if InFlightDB.global then
     local defaults = self.defaults.global
     for faction, t in pairs(InFlightDB.global) do
