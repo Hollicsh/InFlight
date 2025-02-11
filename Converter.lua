@@ -316,13 +316,15 @@ end
 
 
 -- Print taxi nodes variable in a sorted manner.
-local function GetExportText(variableName, taxiNodes)
+local function GetExportText(variableName, taxiNodes, indent)
+  
+  if not indent then indent = "" end
 
-  local exportText = variableName .. " = {\n"
+  local exportText = indent .. variableName .. " = {\n"
 
   for faction, factionNodes in pairs(taxiNodes) do
 
-    exportText = exportText .. "  [\"" .. faction .. "\"] = {\n"
+    exportText = exportText .. indent .. "  [\"" .. faction .. "\"] = {\n"
 
     -- Sort keys.
     local sortedSourceKeys = SortKeys(factionNodes)
@@ -330,12 +332,12 @@ local function GetExportText(variableName, taxiNodes)
       local destNodes = factionNodes[sourceNodeId]
 
       if type(sourceNodeId) ~= "number" then
-        exportText = exportText .. "    [\"" .. sourceNodeId .. "\"] = {   -- Flightpath started by gossip option.\n"
+        exportText = exportText .. indent .. "    [\"" .. sourceNodeId .. "\"] = {   -- Flightpath started by gossip option.\n"
       else
-        exportText = exportText .. "    [" .. sourceNodeId .. "] = {\n"
+        exportText = exportText .. indent .. "    [" .. sourceNodeId .. "] = {\n"
         -- When exporting InFlightDB, there might not be a name field.
         if destNodes["name"] then
-          exportText = exportText .. "      [\"name\"] = \"" .. destNodes["name"] .. "\",\n"
+          exportText = exportText .. indent .. "      [\"name\"] = \"" .. destNodes["name"] .. "\",\n"
         end
       end
 
@@ -350,19 +352,19 @@ local function GetExportText(variableName, taxiNodes)
           if type(destNodeId) == "number" then
             -- Get rid of redundand 0 entries.
             if tonumber(flightTime) > 0 then
-              exportText = exportText .. "      [" .. destNodeId .. "] = " .. flightTime .. ",\n"
+              exportText = exportText .. indent .. "      [" .. destNodeId .. "] = " .. flightTime .. ",\n"
             end
           else
-            exportText = exportText .. "      [\"" .. destNodeId .. "\"] = " .. flightTime .. ",\n"
+            exportText = exportText .. indent .. "      [\"" .. destNodeId .. "\"] = " .. flightTime .. ",\n"
           end
         end
 
       end
-      exportText = exportText .. "    },\n"
+      exportText = exportText .. indent .. "    },\n"
     end
-    exportText = exportText .. "  },\n"
+    exportText = exportText .. indent .. "  },\n"
   end
-  exportText = exportText .. "}\n"
+  exportText = exportText .. indent .. "}\n"
 
   return exportText
 end
@@ -386,7 +388,7 @@ end
 
 
 
--- local exportText = GetExportText("global", InFlight.defaults.global)
+-- local exportText = GetExportText("global", InFlight.defaults.global, "  ")
 -- editbox:SetText(exportText)
 -- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
 
