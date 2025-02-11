@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "enUS", true, true)
 if not L then return end
 
+L["ExportMessage"] = "Thanks for sharing your newly discovered flight paths!\nPlease copy the text below to clipboard (CTRL-C) and post it on one of the following websites:"
+L["Dismiss"] = "Dismiss"
+L["Select All"] = "Select All"
+
 L["AddonDisabled"] = "Wrong client version detected: disabling addon"
 L["BackgroundColor"] = "Background Color"
 L["BarColor"] = "Bar Color"
@@ -17,7 +21,7 @@ L["Duration"] = "Duration: "
 L["Enter your 'to' text."] = true
 L["FillUp"] = "Fill Up"
 L["FlightTimeAdded"] = "flight time added:"
-L["FlightTimeContribute"] = "%s flight times available to contribute."
+L["FlightTimeContribute"] = "%s flight times available to contribute. Enter \"/inflight export\" to export."
 L["FlightTimeUpdated"] = "flight time updated:"
 L["Font"] = true
 L["FontColor"] = "Font Color"
@@ -27,6 +31,7 @@ L["OutlineTime"] = "Outline Time"
 L["PerCharOptions"] = "Character Specific Options"
 L["ResetFlightTimes"] = "Reset Flight Times"
 L["ResetOptions"] = "Reset Options"
+L["ExportFlightTimes"] = "Export Flight Times"
 L["ShowChat"] = "Chat Messages"
 L["ShowSpark"] = "Show Spark"
 L["TextOptions"] = "Text Options"

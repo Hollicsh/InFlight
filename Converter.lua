@@ -1,3 +1,97 @@
+local folderName = ...
+local L = InFlight.L
+
+
+
+
+local scrollBoxWidth = 600
+local scrollBoxHeight = 500
+local singleLineBoxHeight = 20
+
+local outerFrame = CreateFrame("Frame")
+outerFrame:SetSize(scrollBoxWidth + 80, scrollBoxHeight + 3*singleLineBoxHeight)
+
+local linkFrame1Border = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
+linkFrame1Border:SetPoint("TOP", outerFrame, "TOP", 0, -5)
+linkFrame1Border:SetSize(scrollBoxWidth + 34, singleLineBoxHeight + 2)
+local linkFrame1 = CreateFrame("EditBox", nil, outerFrame, "InputBoxScriptTemplate")
+linkFrame1:SetPoint("CENTER", linkFrame1Border, "CENTER", 0, 0)
+linkFrame1:SetAutoFocus(false)
+linkFrame1:SetFontObject(ChatFontNormal)
+linkFrame1:SetSize(scrollBoxWidth + 22, singleLineBoxHeight)
+
+local linkFrame2Border = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
+linkFrame2Border:SetPoint("TOP", linkFrame1Border, "BOTTOM", 0, 3)
+linkFrame2Border:SetSize(scrollBoxWidth + 34, singleLineBoxHeight + 2)
+local linkFrame2 = CreateFrame("EditBox", nil, outerFrame, "InputBoxScriptTemplate")
+linkFrame2:SetPoint("CENTER", linkFrame2Border, "CENTER", 0, 0)
+linkFrame2:SetAutoFocus(false)
+linkFrame2:SetFontObject(ChatFontNormal)
+linkFrame2:SetSize(scrollBoxWidth + 22, singleLineBoxHeight)
+
+local linkFrame3Border = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
+linkFrame3Border:SetPoint("TOP", linkFrame2Border, "BOTTOM", 0, 3)
+linkFrame3Border:SetSize(scrollBoxWidth + 34, singleLineBoxHeight + 2)
+local linkFrame3 = CreateFrame("EditBox", nil, outerFrame, "InputBoxScriptTemplate")
+linkFrame3:SetPoint("CENTER", linkFrame3Border, "CENTER", 0, 0)
+linkFrame3:SetAutoFocus(false)
+linkFrame3:SetFontObject(ChatFontNormal)
+linkFrame3:SetSize(scrollBoxWidth + 22, singleLineBoxHeight)
+
+linkFrame1:SetText("https://www.curseforge.com/wow/addons/inflight-taxi-timer/comments")
+linkFrame2:SetText("https://www.wowinterface.com/forums/showthread.php?t=18997")
+linkFrame3:SetText("https://www.github.com/LudiusMaximus/InFlight/issues/1")
+
+
+local borderFrame = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
+borderFrame:SetSize(scrollBoxWidth + 34, scrollBoxHeight + 10)
+borderFrame:SetPoint("TOP", linkFrame3Border, "BOTTOM", 0, -5)
+
+local scrollFrame = CreateFrame("ScrollFrame", nil, outerFrame, "UIPanelScrollFrameTemplate")
+-- scrollFrame:SetPoint("CENTER", -10, 0)
+scrollFrame:SetPoint("TOP", borderFrame, "TOP", -10, -5)
+scrollFrame:SetSize(scrollBoxWidth, scrollBoxHeight)
+
+local editbox = CreateFrame("EditBox", nil, scrollFrame, "InputBoxScriptTemplate")
+editbox:SetMultiLine(true)
+editbox:SetAutoFocus(false)
+editbox:SetFontObject(ChatFontNormal)
+editbox:SetWidth(scrollBoxWidth)
+scrollFrame:SetScrollChild(editbox)
+
+
+
+
+local popupName = "INFLIGHT_EXPORT"
+StaticPopupDialogs[popupName] = {
+  text = L["ExportMessage"],
+  button1 = L["Dismiss"],
+  button2 = L["Select All"],
+  OnCancel =
+    function()
+      editbox:HighlightText()
+      editbox:SetFocus()
+      -- Prevent from hiding!
+      return true
+    end,
+
+  OnShow =
+    function(self)
+
+      local textFrame = self.text
+      C_Timer.After(0.001, function() textFrame:SetWidth(scrollBoxWidth) end)
+
+      editbox:HighlightText()
+      editbox:SetFocus()
+    end,
+
+  hideOnEscape = true,
+}
+
+
+
+
+
 
 
 
@@ -26,57 +120,6 @@ local function SortKeys(tableToSort)
 
   return sortedKeys
 end
-
-
-
-
-
-
-
-local scrollBoxWidth = 600
-local scrollBoxHeight = 500
-
-local outerFrame = CreateFrame("Frame")
-outerFrame:SetSize(scrollBoxWidth + 80, scrollBoxHeight + 20)
-
-local borderFrame = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
-borderFrame:SetSize(scrollBoxWidth + 34, scrollBoxHeight + 10)
-borderFrame:SetPoint("CENTER")
-
-local scrollFrame = CreateFrame("ScrollFrame", nil, outerFrame, "UIPanelScrollFrameTemplate")
-scrollFrame:SetPoint("CENTER", -10, 0)
-scrollFrame:SetSize(scrollBoxWidth, scrollBoxHeight)
-
-
-local editbox = CreateFrame("EditBox", nil, scrollFrame, "InputBoxScriptTemplate")
-editbox:SetMultiLine(true)
-editbox:SetAutoFocus(false)
-editbox:SetFontObject(ChatFontNormal)
-editbox:SetWidth(scrollBoxWidth)
-scrollFrame:SetScrollChild(editbox)
-
-
-
-
-local popupName = "INFLIGHT_EXPORT"
-StaticPopupDialogs[popupName] = {
-    text = "Copy this to clipboard\n(CTRL-C)",
-    button1 = "Dismiss",
-    button2 = "Select All",
-    OnCancel =
-      function(_, data)
-        editbox:HighlightText()
-        editbox:SetFocus()
-        -- Prevent from hiding!
-        return true
-      end,
-
-    OnShow =
-      function()
-        editbox:HighlightText()
-        editbox:SetFocus()
-      end,
-}
 
 
 
@@ -290,7 +333,10 @@ local function GetExportText(variableName, taxiNodes)
         exportText = exportText .. "    [\"" .. sourceNodeId .. "\"] = {   -- Flightpath started by gossip option.\n"
       else
         exportText = exportText .. "    [" .. sourceNodeId .. "] = {\n"
-        exportText = exportText .. "      [\"name\"] = \"" .. destNodes["name"] .. "\",\n"
+        -- When exporting InFlightDB, there might not be a name field.
+        if destNodes["name"] then
+          exportText = exportText .. "      [\"name\"] = \"" .. destNodes["name"] .. "\",\n"
+        end
       end
 
 
@@ -302,7 +348,10 @@ local function GetExportText(variableName, taxiNodes)
 
         if destNodeId ~= "name" then
           if type(destNodeId) == "number" then
-            exportText = exportText .. "      [" .. destNodeId .. "] = " .. flightTime .. ",\n"
+            -- Get rid of redundand 0 entries.
+            if tonumber(flightTime) > 0 then
+              exportText = exportText .. "      [" .. destNodeId .. "] = " .. flightTime .. ",\n"
+            end
           else
             exportText = exportText .. "      [\"" .. destNodeId .. "\"] = " .. flightTime .. ",\n"
           end
@@ -335,6 +384,25 @@ end
 
 
 
-local exportText = GetExportText("global", InFlight.defaults.global)
-editbox:SetText(exportText)
-StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+
+
+-- local exportText = GetExportText("global", InFlight.defaults.global)
+-- editbox:SetText(exportText)
+-- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+
+
+function InFlight:ExportDB()
+  local exportText = ""
+
+
+  local buildVersion, buildNumber = GetBuildInfo()
+  exportText = exportText .. "-- Export by " .. UnitName("player") .. "-" .. GetRealmName() .. "-" .. GetCurrentRegionName() .. "\n"
+  exportText = exportText .. "-- " .. date("%Y-%m-%d %H:%M:%S", time()) .. "\n"
+  exportText = exportText .. "-- WoW-Client " .. buildVersion .. " " .. buildNumber ..  " " .. GetLocale() .. "\n"
+  exportText = exportText .. "-- " .. folderName .. " " .. C_AddOns.GetAddOnMetadata(folderName, "Version") .. "\n\n"
+
+  exportText = exportText .. GetExportText("myExport", InFlight.newPlayerSaveData)
+
+  editbox:SetText(exportText)
+  StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+end

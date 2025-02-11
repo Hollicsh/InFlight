@@ -12064,8 +12064,7 @@ InFlight.defaults = {
 			["Honor Point"] = {
 				["Shatter Point"] = 30,
 			},
-			["Shatter Point"] = {
-				["Honor Point"] = 40,
+			[149] = {
 				[100] = 57,
 				[101] = 132,
 				[117] = 213,
@@ -12079,6 +12078,9 @@ InFlight.defaults = {
 				[140] = 333,
 				[160] = 334,
 				["name"] = "Shatter Point",
+			},
+			["Shatter Point"] = {
+				["Honor Point"] = 40,
 			},
 			[129] = {
 				[100] = 73,

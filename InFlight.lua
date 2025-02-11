@@ -160,8 +160,14 @@ end
 
 function InFlight:SetupInFlight()
 
-  SlashCmdList.INFLIGHT = function()
-    self:ShowOptions()
+  SlashCmdList.INFLIGHT = function(arg1)
+
+    if arg1 == "export" then
+      self:ExportDB()
+    else
+      self:ShowOptions()
+    end
+
   end
   SLASH_INFLIGHT1 = "/inflight"
 
@@ -424,7 +430,7 @@ function InFlight:LoadBulk()
 
 
 
-  -- If player save data is (almost) the same as the corresponding stock default,
+  -- If player save data (InFlightDB.global) is (almost, +/- 3) the same as stock default data (self.defaults.global),
   -- remove player save data by setting it to the corresponsing stock default.
   if InFlightDB.global then
     local defaults = self.defaults.global
@@ -432,8 +438,7 @@ function InFlight:LoadBulk()
       for src, dt in pairs(t) do
         if defaults[faction][src] then
           for dst, dtime in pairs(dt) do
-            if dst ~= "name" and defaults[faction][src][dst]
-                and abs(dtime - defaults[faction][src][dst]) < (debug and 2 or 5) then
+            if dst ~= "name" and defaults[faction][src][dst] and abs(dtime - defaults[faction][src][dst]) < 3 then
               InFlightDB.global[faction][src][dst] = defaults[faction][src][dst]
             end
           end
@@ -442,40 +447,35 @@ function InFlight:LoadBulk()
     end
   end
 
-  -- Check every 2 weeks if there are new flight times that could be uploaded
-  if not InFlightDB.upload or InFlightDB.upload < time() then
-    if InFlightDB.global then
-      local defaults = self.defaults.global
-      for faction, t in pairs(InFlightDB.global) do
-        local found = 0
-        for src, dt in pairs(t) do
-          for dst, dtime in pairs(dt) do
-            if dst ~= "name" then
-              local srcName = (defaults[faction][src] and defaults[faction][src].name
-                  or InFlightDB.global[faction][src] and ("|cff208080"..InFlightDB.global[faction][src].name)
-                  or "").."("..src..")|r"
-              local dstName = (defaults[faction][dst] and defaults[faction][dst].name
-                  or InFlightDB.global[faction][dst] and ("|cff208080"..InFlightDB.global[faction][dst].name)
-                  or "").."("..dst..")|r"
-              if not defaults[faction][src] or not defaults[faction][src][dst] then
-                found = found + 1
-                PrintD(faction, "|cff208020-|r", srcName, "-->", dstName, "|cff208020found:|r", FormatTime(dtime))
-              elseif abs(defaults[faction][src][dst] - dtime) >= (debug and 2 or 5) then
-                found = found + 1
-                PrintD(faction, "|cff208020-|r", srcName, "-->", dstName, "|cff208020updated:|r", FormatTime(defaults[faction][src][dst]), "-->", FormatTime(dtime))
-              end
-            end
-          end
-        end
 
-        if found > 0 then
-          Print(faction, format("|cff208020- "..L["FlightTimeContribute"].."|r", "|r"..found.."|cff208020"))
+
+  -- Store new player save data for export.
+  local found = 0
+
+  local defaults = self.defaults.global
+  local newPlayerSaveData = {}
+  InFlight.newPlayerSaveData = newPlayerSaveData
+  for faction, factionNodes in pairs(InFlightDB.global) do
+    for src, destNodes in pairs(factionNodes) do
+      for dst, dtime in pairs(destNodes) do
+        if (dst ~= "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or abs(dtime - defaults[faction][src][dst]) > 2)) or
+           (dst == "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or dtime ~= defaults[faction][src][dst])) then
+          newPlayerSaveData[faction] = newPlayerSaveData[faction] or {}
+          newPlayerSaveData[faction][src] = newPlayerSaveData[faction][src] or {}
+          newPlayerSaveData[faction][src][dst] = dtime
+          if dst ~= "name" then
+            found = found + 1
+          end
         end
       end
     end
-
-    InFlightDB.upload = time() + 1209600  -- 2 weeks in seconds (60 * 60 * 24 * 14)
   end
+
+  if found > 0 and (not InFlightDB.upload or InFlightDB.upload < time()) then
+    Print(format("|cff208020- "..L["FlightTimeContribute"].."|r", "|r"..found.."|cff208020"))
+    InFlightDB.upload = time() + 604800  -- 1 week in seconds (60 * 60 * 24 * 7)
+  end
+
 
   -- Create profile and flight time databases
   local faction = UnitFactionGroup("player")
@@ -492,6 +492,7 @@ function InFlight:LoadBulk()
       return
     end
 
+    -- TODO: Why?
     -- Don't show timer or record times for Argus map
     if GetTaxiMapID() == 994 then
       return oldTakeTaxiNode(slot)
@@ -608,6 +609,7 @@ function InFlight:InitSource(isTaxiMap)  -- cache source location and hook toolt
     end
   end
 
+  -- TODO: Still needed?
   -- Workaround for Blizzard bug on OutLand Flight Map
   if not taxiSrc and GetTaxiMapID() == 1467 and GetMinimapZoneText() == L["Shatter Point"] then
     taxiSrcName = L["Shatter Point"]
@@ -755,27 +757,45 @@ do  -- timer bar
       if not ontaxi then  -- flight ended
         PrintD("|cff208080porttaken -|r", porttaken)
         if not porttaken and taxiSrc then
+
+          local newPlayerSaveData = InFlight.newPlayerSaveData
+          local defaults = self.defaults.global
+          local faction = UnitFactionGroup("player")
+          if not defaults[faction][taxiSrc] or not defaults[faction][taxiSrc]["name"] then
+            -- print("Adding", taxiSrcName, "as new node/new name")
+            newPlayerSaveData[faction] = newPlayerSaveData[faction] or {}
+            newPlayerSaveData[faction][taxiSrc] = newPlayerSaveData[faction][taxiSrc] or {}
+            newPlayerSaveData[faction][taxiSrc]["name"] = taxiSrcName
+          end
+
           vars[taxiSrc] = vars[taxiSrc] or { name = taxiSrcName }
           local oldTime = vars[taxiSrc][taxiDst]
           local newTime = floor(totalTime + 0.5)
           local msg = strjoin(" ", taxiSrcName..(debug and "("..taxiSrc..")" or ""), db.totext, taxiDstName..(debug and "("..taxiDst..")" or ""), "|cff208080")
           if not oldTime then
             msg = msg..L["FlightTimeAdded"].."|r "..FormatTime(newTime)
-          elseif abs(newTime - oldTime) >= 5 then
+
+          elseif abs(newTime - oldTime) > 2 then
             msg = msg..L["FlightTimeUpdated"].."|r "..FormatTime(oldTime).." |cff208080"..db.totext.."|r "..FormatTime(newTime)
+
           else
             if debug then
               PrintD(msg..L["FlightTimeUpdated"].."|r "..FormatTime(oldTime).." |cff208080"..db.totext.."|r "..FormatTime(newTime))
             end
 
-            if not debug or abs(newTime - oldTime) < 2 then
-              newTime = oldTime
-            end
-
+            newTime = oldTime
             msg = nil
           end
 
+          if not defaults[faction][taxiSrc] or not defaults[faction][taxiSrc][taxiDst] or abs(newTime - defaults[faction][taxiSrc][taxiDst]) > 2 then
+            -- print("Updating ", newTime, "as new time for", taxiSrcName)
+            newPlayerSaveData[faction] = newPlayerSaveData[faction] or {}
+            newPlayerSaveData[faction][taxiSrc] = newPlayerSaveData[faction][taxiSrc] or {}
+            newPlayerSaveData[faction][taxiSrc][taxiDst] = newTime
+          end
+
           vars[taxiSrc][taxiDst] = newTime
+
           if msg and db.chatlog then
             Print(msg)
           end
@@ -1041,6 +1061,8 @@ function InFlight.ShowOptions()
         InFlightDB.dbinit = nil
         InFlightDB.global = {}
         ReloadUI()
+      elseif k == "exporttimes" then
+        InFlight:ExportDB()
       end
     end
 
@@ -1240,6 +1262,7 @@ function InFlight.ShowOptions()
           AddToggle(lvl, L["PerCharOptions"], "perchar")
           AddExecute(lvl, L["ResetOptions"], "resetoptions")
           AddExecute(lvl, L["ResetFlightTimes"], "resettimes")
+          AddExecute(lvl, L["ExportFlightTimes"], "exporttimes")
         end
       elseif lvl == 3 then
         local sub = UIDROPDOWNMENU_MENU_VALUE
