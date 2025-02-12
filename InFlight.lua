@@ -29,6 +29,8 @@ InFlight.L = L
 
 
 
+InFlight.newPlayerSaveData = {}
+
 InFlight.debug = false
 
 -- LOCAL VARIABLES
@@ -434,6 +436,7 @@ function InFlight:LoadBulk()
   -- remove player save data by setting it to the corresponsing stock default.
   if InFlightDB.global then
     local defaults = self.defaults.global
+
     for faction, t in pairs(InFlightDB.global) do
       for src, dt in pairs(t) do
         if defaults[faction][src] then
@@ -445,35 +448,32 @@ function InFlight:LoadBulk()
         end
       end
     end
-  end
 
 
-
-  -- Store new player save data for export.
-  local found = 0
-
-  local defaults = self.defaults.global
-  local newPlayerSaveData = {}
-  InFlight.newPlayerSaveData = newPlayerSaveData
-  for faction, factionNodes in pairs(InFlightDB.global) do
-    for src, destNodes in pairs(factionNodes) do
-      for dst, dtime in pairs(destNodes) do
-        if (dst ~= "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or abs(dtime - defaults[faction][src][dst]) > 2)) or
-           (dst == "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or dtime ~= defaults[faction][src][dst])) then
-          newPlayerSaveData[faction] = newPlayerSaveData[faction] or {}
-          newPlayerSaveData[faction][src] = newPlayerSaveData[faction][src] or {}
-          newPlayerSaveData[faction][src][dst] = dtime
-          if dst ~= "name" then
-            found = found + 1
+    -- Store new player save data for export.
+    local found = 0
+    local newPlayerSaveData = InFlight.newPlayerSaveData
+    for faction, factionNodes in pairs(InFlightDB.global) do
+      for src, destNodes in pairs(factionNodes) do
+        for dst, dtime in pairs(destNodes) do
+          if (dst ~= "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or abs(dtime - defaults[faction][src][dst]) > 2)) or
+             (dst == "name" and (not defaults[faction][src] or not defaults[faction][src][dst] or dtime ~= defaults[faction][src][dst])) then
+            newPlayerSaveData[faction] = newPlayerSaveData[faction] or {}
+            newPlayerSaveData[faction][src] = newPlayerSaveData[faction][src] or {}
+            newPlayerSaveData[faction][src][dst] = dtime
+            if dst ~= "name" then
+              found = found + 1
+            end
           end
         end
       end
     end
-  end
 
-  if found > 0 and (not InFlightDB.upload or InFlightDB.upload < time()) then
-    Print(format("|cff208020- "..L["FlightTimeContribute"].."|r", "|r"..found.."|cff208020"))
-    InFlightDB.upload = time() + 604800  -- 1 week in seconds (60 * 60 * 24 * 7)
+    if found > 0 and (not InFlightDB.upload or InFlightDB.upload < time()) then
+      Print(format("|cff208020- "..L["FlightTimeContribute"].."|r", "|r"..found.."|cff208020"))
+      InFlightDB.upload = time() + 604800  -- 1 week in seconds (60 * 60 * 24 * 7)
+    end
+
   end
 
 

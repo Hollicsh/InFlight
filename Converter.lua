@@ -38,10 +38,6 @@ linkFrame3:SetAutoFocus(false)
 linkFrame3:SetFontObject(ChatFontNormal)
 linkFrame3:SetSize(scrollBoxWidth + 22, singleLineBoxHeight)
 
-linkFrame1:SetText("https://www.curseforge.com/wow/addons/inflight-taxi-timer/comments")
-linkFrame2:SetText("https://www.wowinterface.com/forums/showthread.php?t=18997")
-linkFrame3:SetText("https://www.github.com/LudiusMaximus/InFlight/issues/1")
-
 
 local borderFrame = CreateFrame("Frame", nil, outerFrame, "TooltipBackdropTemplate")
 borderFrame:SetSize(scrollBoxWidth + 34, scrollBoxHeight + 10)
@@ -79,7 +75,13 @@ StaticPopupDialogs[popupName] = {
     function(self)
 
       local textFrame = self.text
-      C_Timer.After(0.001, function() textFrame:SetWidth(scrollBoxWidth) end)
+      C_Timer.After(0.001, function()
+        textFrame:SetWidth(scrollBoxWidth)
+
+        linkFrame1:SetText("https://www.curseforge.com/wow/addons/inflight-taxi-timer/comments")
+        linkFrame2:SetText("https://www.wowinterface.com/forums/showthread.php?t=18997")
+        linkFrame3:SetText("https://www.github.com/LudiusMaximus/InFlight/issues/1")
+      end)
 
       editbox:HighlightText()
       editbox:SetFocus()
