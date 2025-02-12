@@ -387,6 +387,52 @@ end
 
 
 
+-- ############################################################
+-- ########## Merge old faction format into unified. ##########
+-- ############################################################
+-- It was a nice idea, but there are in fact different flight times between the same nodes (at least in classic):
+-- https://classictinker.com/flight-master/?fromLoc=Ratchet%2C%20The%20Barrens&toLoc=Marshal%27s%20Refuge%2C%20Un%27Goro%20Crater&faction=alliance  (6 min)
+-- https://classictinker.com/flight-master/?fromLoc=Ratchet%2C%20The%20Barrens&toLoc=Marshal%27s%20Refuge%2C%20Un%27Goro%20Crater&faction=horde     (8 min)
+-- TODO: Do a unification for all node IDs in ranges where we know it is only unified expansions?
+
+
+local function MergeFactions(input)
+
+  local output = {}
+
+  -- Copy all Alliance into output.
+  for src, destNodes in pairs(input["Alliance"]) do
+    for dst, dTimeOrName in pairs(destNodes) do
+      output[src] = output[src] or {}
+      output[src][dst] = dTimeOrName
+    end
+  end
+
+  -- Merge Horde into Alliance!
+  for src, destNodes in pairs(input["Horde"]) do
+    for dst, dTimeOrName in pairs(destNodes) do
+      if not output[src] or not output[src][dst] then
+        output[src] = output[src] or {}
+        output[src][dst] = dTimeOrName
+      else
+        if dst == "name" then
+          if output[src][dst] ~= dTimeOrName then
+            print("Got different names for Alliance", output[src][dst], "and Horde", dTimeOrName)
+          end
+        else
+          if abs(output[src][dst] - dTimeOrName) > 2 then
+            print("Got different times for", output[src] and output[src]["name"] or "<unknown>", "to", output[dst] and output[dst]["name"] or "<unknown>", "Alliance", output[src][dst], "and Horde", dTimeOrName)
+          end
+        end
+      end
+    end
+  end
+
+  return output
+end
+
+
+
 
 
 
@@ -395,8 +441,9 @@ end
 -- ####################################################
 -- ########## Import data uploaded by users. ##########
 -- ####################################################
--- Test before actually doing it.
 
+
+-- Paste uploaded user data here and uncomment ImportUserUpload(defaults, myImport, false) below.
 local myImport = {}
 
 
@@ -443,14 +490,15 @@ end
 
 local defaults = InFlight.defaults.global
 
-ImportUserUpload(defaults, myImport, false)
 
+-- Uncomment to get new default data.
+-- Set third argument to true, for imports that are not english.
 
+-- ImportUserUpload(defaults, myImport, false)
+-- local exportText = GetExportText("global", defaults, "  ")
+-- editbox:SetText(exportText)
+-- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
 
-
-local exportText = GetExportText("global", defaults, "  ")
-editbox:SetText(exportText)
-StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
 
 
 
@@ -459,7 +507,6 @@ StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
 
 function InFlight:ExportDB()
   local exportText = ""
-
 
   local buildVersion, buildNumber = GetBuildInfo()
   exportText = exportText .. "-- Export by " .. UnitName("player") .. "-" .. GetRealmName() .. "-" .. GetCurrentRegionName() .. "\n"
