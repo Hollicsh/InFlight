@@ -317,7 +317,7 @@ end
 
 -- Print taxi nodes variable in a sorted manner.
 local function GetExportText(variableName, taxiNodes, indent)
-  
+
   if not indent then indent = "" end
 
   local exportText = indent .. variableName .. " = {\n"
@@ -371,8 +371,6 @@ end
 
 
 
-
-
 -- Use data from Defaults.lua of InFlight_Classic_Era-1.15.002.
 -- Delete "Revantusk", which seemed to be a duplicated of "Revantusk Village".
 -- local oldClassicNodes = {
@@ -388,9 +386,75 @@ end
 
 
 
--- local exportText = GetExportText("global", InFlight.defaults.global, "  ")
--- editbox:SetText(exportText)
--- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+
+
+
+
+
+
+-- ####################################################
+-- ########## Import data uploaded by users. ##########
+-- ####################################################
+-- Test before actually doing it.
+
+local myImport = {}
+
+
+
+
+local function ImportUserUpload(defaults, import, ignoreNames)
+  local updated = 0
+
+  for faction, factionNodes in pairs(import) do
+    for src, destNodes in pairs(factionNodes) do
+      if not defaults[faction][src] then
+        defaults[faction][src] = destNodes
+        updated = updated + #destNodes
+        if ignoreNames then
+          defaults[faction][src]["name"] = nil
+          updated = updated - 1
+        end
+      else
+        for dst, dtimeOrName in pairs(destNodes) do
+          if not defaults[faction][src][dst] then
+            if dst ~= "name" or not ignoreNames then
+              defaults[faction][src][dst] = dtimeOrName
+              updated = updated + 1
+            end
+          else
+            if dst == "name" then
+              if defaults[faction][src][dst] ~= dtimeOrName and not ignoreNames then
+                print("Got a different name", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "to", defaults[faction][dst] and defaults[faction][dst]["name"] or "<unknown>", dst, "is now", dtimeOrName, "but has so far been", defaults[faction][src][dst])
+                defaults[faction][src][dst] = dtimeOrName
+              end
+            elseif abs(defaults[faction][src][dst] - dtimeOrName) > 2 then
+              print("Got a different time", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "to", defaults[faction][dst] and defaults[faction][dst]["name"] or "<unknown>", dst, "is now", dtimeOrName, "has so far been", defaults[faction][src][dst])
+              defaults[faction][src][dst] = dtimeOrName
+            end
+          end
+        end
+      end
+    end
+  end
+
+  print("Updated", updated)
+end
+
+
+local defaults = InFlight.defaults.global
+
+ImportUserUpload(defaults, myImport, false)
+
+
+
+
+local exportText = GetExportText("global", defaults, "  ")
+editbox:SetText(exportText)
+StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+
+
+
+
 
 
 function InFlight:ExportDB()
