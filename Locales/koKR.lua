@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "koKR")
 if not L then return end
 
+L["ExportMessage"] = "새로 발견된 비행 경로를 공유해 주셔서 감사합니다!\n아래 텍스트를 클립보드에 복사(CTRL-C)한 후 다음 웹사이트 중 하나에 게시해 주세요:"
+L["Dismiss"] = "닫기"
+L["Select All"] = "모두 선택"
+
 L["AddonDisabled"] = "클라이언트 버전이 잘못 감지되었습니다 : 애드온 비활성화"
 L["BackgroundColor"] = "배경 색상"
 L["BarColor"] = "바 색상"
@@ -17,7 +21,7 @@ L["Duration"] = "지속시간: "
 L["Enter your 'to' text."] = true
 L["FillUp"] = "바 채우기"
 L["FlightTimeAdded"] = "추가 비행 시간 :"
-L["FlightTimeContribute"] = "%s 비행 시간 업로드 할 수는."
+L["FlightTimeContribute"] = "%s 비행 시간을 업로드할 수 있습니다. \"/inflight export\"를 입력하여 내보내기하세요."
 L["FlightTimeUpdated"] = "업데이트 된 비행 시간 :"
 L["Font"] = "글꼴"
 L["FontColor"] = "글꼴 색상"

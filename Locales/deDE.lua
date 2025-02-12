@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "deDE")
 if not L then return end
 
+L["ExportMessage"] = "Danke, dass du deine neu entdeckten Flugrouten teilen möchtest!\nBitte kopiere den unten stehenden Text in die Zwischenablage (STRG-C) und poste ihn auf einer der folgenden Websites:"
+L["Dismiss"] = "Schließen"
+L["Select All"] = "Alles auswählen"
+
 L["AddonDisabled"] = "Falsche Client-Version erkannt: Addon wird deaktiviert"
 L["BackgroundColor"] = "Hintergrundfarbe"
 L["BarColor"] = "Farbe der Leiste"

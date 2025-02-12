@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "ptBR")
 if not L then return end
 
+L["ExportMessage"] = "Obrigado por compartilhar suas novas rotas de voo descobertas!\nPor favor, copie o texto abaixo para a área de transferência (CTRL-C) e poste-o em um dos seguintes sites:"
+L["Dismiss"] = "Fechar"
+L["Select All"] = "Selecionar Tudo"
+
 L["AddonDisabled"] = "Versão incorreta do cliente detectada: desativando o complemento"
 L["BackgroundColor"] = "Cor de Fundo"
 L["BarColor"] = "Cor da Barra"
@@ -17,7 +21,7 @@ L["Duration"] = "Duração: "
 L["Enter your 'to' text."] = true
 L["FillUp"] = "Encher"
 L["FlightTimeAdded"] = "tempo de vôo acrescentou:"
-L["FlightTimeContribute"] = "%s tempos de voo disponíveis para contribuir."
+L["FlightTimeContribute"] = "%s tempos de voo disponíveis para contribuir. Digite \"/inflight export\" para exportar."
 L["FlightTimeUpdated"] = "tempo de vôo atualização:"
 L["Font"] = "Fonte"
 L["FontColor"] = "Cor da Fonte"

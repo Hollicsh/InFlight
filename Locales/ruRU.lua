@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "ruRU")
 if not L then return end
 
+L["ExportMessage"] = "Спасибо, что поделились вашими новыми обнаруженными маршрутами полета!\nПожалуйста, скопируйте текст ниже в буфер обмена (CTRL-C) и разместите его на одном из следующих веб-сайтов:"
+L["Dismiss"] = "Закрыть"
+L["Select All"] = "Выбрать все"
+
 L["AddonDisabled"] = "Обнаружена неверная версия клиента: отключение аддона"
 L["BackgroundColor"] = "Цвет фона"
 L["BarColor"] = "Цвет заполнения"
@@ -17,7 +21,7 @@ L["Duration"] = "Продолжительность полета: "
 L["Enter your 'to' text."] = true
 L["FillUp"] = "Заполнять"
 L["FlightTimeAdded"] = "добавлено время полета:"
-L["FlightTimeContribute"] = "%s раз полета доступны внести свой вклад."
+L["FlightTimeContribute"] = "%s раз полета доступны для вклада. Введите \"/inflight export\", чтобы экспортировать."
 L["FlightTimeUpdated"] = "Время полета обновлено:"
 L["Font"] = "Шрифт"
 L["FontColor"] = "Цвет шрифта"

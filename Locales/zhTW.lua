@@ -1,6 +1,10 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("InFlight", "zhTW")
 if not L then return end
 
+L["ExportMessage"] = "感謝分享您新發現的飛行路徑！\n請將下面的文本複製到剪貼板 (CTRL-C)，並將其張貼到以下網站之一："
+L["Dismiss"] = "關閉"
+L["Select All"] = "全選"
+
 L["AddonDisabled"] = "檢測到錯誤的客戶端版本：禁用插件"
 L["BackgroundColor"] = "背景顏色"
 L["BarColor"] = "時間條顏色"
@@ -17,7 +21,7 @@ L["Duration"] = "時間："
 L["Enter your 'to' text."] = true
 L["FillUp"] = "遞增"
 L["FlightTimeAdded"] = "飛行時間補充："
-L["FlightTimeContribute"] = "%s 飛行時間可供貢獻。"
+L["FlightTimeContribute"] = "%s 飛行時間可供貢獻。輸入\"/inflight export\"來導出。"
 L["FlightTimeUpdated"] = "航班時間更新："
 L["Font"] = "字形"
 L["FontColor"] = "字形顏色"
