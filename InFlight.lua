@@ -250,7 +250,7 @@ local function GetEstimatedTime(slot)  -- estimates flight times based on hops
       PrintD("|cff208080Node:|r", taxiNodes[srcNode].."("..srcNode..") -->", taxiNodes[dstNode].."("..dstNode..")")
       if vars[taxiNodes[srcNode]] then
         if not etimes[dstNode] and vars[taxiNodes[srcNode]][taxiNodes[dstNode]] then
-          etimes[dstNode] = etimes[srcNode] + vars[taxiNodes[srcNode]][taxiNodes[dstNode]]
+          etimes[dstNode] = etimes[srcNode] + vars[taxiNodes[srcNode]][taxiNodes[dstNode]] * InFlight:KhazAlgarFlightMasterFactor(taxiNodes[dstNode])
           PrintD(taxiNodes[dstNode].."("..dstNode..") time:", FormatTime(etimes[srcNode]), "+", FormatTime(vars[taxiNodes[srcNode]][taxiNodes[dstNode]]), "=", FormatTime(etimes[dstNode]))
           nextNode[srcNode] = dstNode - 1
           prevNode[dstNode] = srcNode
@@ -292,9 +292,10 @@ local function postTaxiNodeOnButtonEnter(button) -- adds duration info to taxi n
     return
   end
 
-  local duration = vars[taxiSrc] and vars[taxiSrc][GetNodeID(id)]
+  local tmpTaxiDst = GetNodeID(id)
+  local duration = vars[taxiSrc] and vars[taxiSrc][tmpTaxiDst]
   if duration then
-    addDuration(duration)
+    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst))
   else
     addDuration(GetEstimatedTime(id) or 0, true)
   end
@@ -311,10 +312,11 @@ local function postFlightNodeOnButtonEnter(button) -- adds duration info to flig
     return
   end
 
-  local duration = vars[taxiSrc] and vars[taxiSrc][button.taxiNodeData.nodeID]
+  local tmpTaxiDst = button.taxiNodeData.nodeID
+  local duration = vars[taxiSrc] and vars[taxiSrc][tmpTaxiDst]
   if duration then
     -- gtt:AddLine("NodeID: "..button.taxiNodeData.nodeID, 0.2, 0.8, 0.2) -- TEST
-    addDuration(duration)
+    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst))
   else
     -- gtt:AddLine("NodeID: "..button.taxiNodeData.nodeID, 0.2, 0.8, 0.2) -- TEST
     addDuration(GetEstimatedTime(button.taxiNodeData.slotIndex) or 0, true)
@@ -519,7 +521,7 @@ function InFlight:LoadBulk()
     taxiDst = GetNodeID(slot)
     local t = vars[taxiSrc]
     if t and t[taxiDst] and t[taxiDst] > 0 then  -- saved variables lookup
-      endTime = t[taxiDst]
+      endTime = t[taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
       endText = FormatTime(endTime)
     else
       endTime = GetEstimatedTime(slot)
@@ -667,7 +669,7 @@ function InFlight:StartMiscFlight(src, dst)  -- called from InFlight_Load for sp
   taxiSrc = src
   taxiDstName = L[dst]
   taxiDst = dst
-  endTime = vars[src] and vars[src][dst]
+  endTime = vars[src] and vars[src][dst] * self:KhazAlgarFlightMasterFactor(taxiSrc)
   endText = FormatTime(endTime)
   self:StartTimer()
 end
@@ -769,8 +771,10 @@ do  -- timer bar
           end
 
           vars[taxiSrc] = vars[taxiSrc] or { name = taxiSrcName }
-          local oldTime = vars[taxiSrc][taxiDst]
+          local oldTime = vars[taxiSrc][taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
           local newTime = floor(totalTime + 0.5)
+
+
           local msg = strjoin(" ", taxiSrcName..(debug and "("..taxiSrc..")" or ""), db.totext, taxiDstName..(debug and "("..taxiDst..")" or ""), "|cff208080")
           if not oldTime then
             msg = msg..L["FlightTimeAdded"].."|r "..FormatTime(newTime)
@@ -779,10 +783,6 @@ do  -- timer bar
             msg = msg..L["FlightTimeUpdated"].."|r "..FormatTime(oldTime).." |cff208080"..db.totext.."|r "..FormatTime(newTime)
 
           else
-            if debug then
-              PrintD(msg..L["FlightTimeUpdated"].."|r "..FormatTime(oldTime).." |cff208080"..db.totext.."|r "..FormatTime(newTime))
-            end
-
             newTime = oldTime
             msg = nil
           end
@@ -794,7 +794,8 @@ do  -- timer bar
             newPlayerSaveData[faction][taxiSrc][taxiDst] = newTime
           end
 
-          vars[taxiSrc][taxiDst] = newTime
+          vars[taxiSrc][taxiDst] = newTime / InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+
 
           if msg and db.chatlog then
             Print(msg)
@@ -1284,87 +1285,3 @@ function InFlight.ShowOptions()
 end
 
 
-
-
-
-
-if debug then
-
-function inflightupdate(updateExistingTimes)
-  local updates = {}
-  local ownData = false
-  if #updates == 0 then
-    updates[1] = InFlightDB.global
-    ownData = true
-  end
-  local defaults = InFlight.defaults.global
-  for _, flightPaths in ipairs(updates) do
-
-    -- Set updateExistingTimes to true to update and add new times (for updates based
-    --   on the current default db)
-    -- Set updateExistingTimes to false to only add new unknown times (use for updates
-    --   not based on current default db to avoid re-adding old/incorrect times)
-    if updateExistingTimes == nil then
-      updateExistingTimes = ownData
-    end
-
-    for faction, t in pairs(flightPaths) do
-      if faction == "Horde" or faction == "Alliance" then
-        local found = false
-        local updated, added = 0, 0
-        for src, dt in pairs(t) do
-          if not defaults[faction][src] then
-            defaults[faction][src] = {}
-            PrintD(faction, "|cff208080New source:|r", src)
-          end
-
-          for dst, utime in pairs(dt) do
-            if dst == "name" then
-              if defaults[faction][src][dst] ~= utime then
-                defaults[faction][src][dst] = utime
-                PrintD(faction, "|cff208080New source name:|r", utime.."("..src..")")
-              end
-            elseif src ~= dst and type(utime) == "number" then
-              local vtime = defaults[faction][src][dst]
-              if utime >= 5 and (not vtime or ownData or abs(vtime - utime) >= 5) then
-                local srcName = (defaults[faction][src] and defaults[faction][src].name
-                    or flightPaths[faction][src] and flightPaths[faction][src].name
-                    or "").."("..src..")"
-                local dstName = (defaults[faction][dst] and defaults[faction][dst].name
-                    or flightPaths[faction][dst] and flightPaths[faction][dst].name
-                    or "").."("..dst..")"
-                if vtime then
-                  if updateExistingTimes and defaults[faction][src][dst] ~= utime then
-                    defaults[faction][src][dst] = utime
-                    found = true
-                    updated = updated + 1
-                    PrintD(faction, "|cff208020Update time:|r", srcName, "|cff208020-->|r", dstName, "|cff208020- old:|r", vtime, "|cff208020new:|r", utime)
-                  end
-                else
-                  defaults[faction][src][dst] = utime
-                  found = true
-                  added = added + 1
-                  PrintD(faction, "|cff208080New time:|r", srcName, "|cff208020-->|r", dstName, "|cff208020- new:|r", utime)
-                end
-              end
-            end
-          end
-        end
-
-        if found then
-          PrintD(faction, "|cff208020-|r", updated, "|cff208020updated times.|r")
-          PrintD(faction, "|cff208020-|r", added, "|cff208080new times.|r")
-        else
-          PrintD(faction, "|cff208020-|r No time updates found.")
-        end
-      else
-        defaults[faction] = nil
-        Print("Unknown faction removed:", faction)
-      end
-    end
-
-    InFlightDB.defaults = defaults
-  end
-end
-
-end -- debug

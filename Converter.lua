@@ -128,7 +128,68 @@ end
 
 
 
+-- ###########################################################################################################
+-- ########## Identify flight points in Khaz Algar to handle "Khaz Algar Flight Master" speed boost. #########
+-- ###########################################################################################################
 
+-- https://warcraft.wiki.gg/wiki/API_C_Map.GetMapInfo
+-- https://warcraft.wiki.gg/wiki/UiMapID
+
+local function GetKhazAlgarNodes()
+
+  local khazAlgarNodes = {}
+
+  local khazAlgarMapId = 2274
+  local cosmicMapId = 947
+
+  local function GetFinalParent(uiMapID)
+    local mapInfo = C_Map.GetMapInfo(uiMapID)
+    -- print(uiMapID, mapInfo.mapID, mapInfo.name, mapInfo.parentMapID)
+    if mapInfo.parentMapID == 0 or mapInfo.parentMapID == cosmicMapId then
+      return mapInfo.mapID
+    else
+      return GetFinalParent(mapInfo.parentMapID)
+    end
+  end
+
+  -- Go through all map IDs.
+  for uiMapID = 1, 2500 do
+
+    local mapInfo = C_Map.GetMapInfo(uiMapID)
+    if mapInfo and mapInfo.mapID and GetFinalParent(mapInfo.mapID) == khazAlgarMapId then
+      -- print("----------", mapInfo.mapID, mapInfo.name, mapInfo.parentMapID, GetFinalParent(uiMapID))
+
+      local taxiNodes = C_TaxiMap.GetTaxiNodesForMap(mapInfo.mapID)
+      if taxiNodes and #taxiNodes > 0 then
+
+        -- print("+++++", mapInfo.mapID, mapInfo.name, #taxiNodes)
+        for _, v in pairs(taxiNodes) do
+          -- print("    ", v.nodeID, v.name)
+          khazAlgarNodes[v.nodeID] = true
+        end
+      end
+    end
+  end  -- Go through all map IDs.
+
+  return khazAlgarNodes
+end
+
+local khazAlgarNodes = GetKhazAlgarNodes()
+
+function InFlight:KhazAlgarFlightMasterFactor(nodeID)
+  -- print("KhazAlgarFlightMasterFactor", nodeID)
+  if khazAlgarNodes[nodeID] then
+    -- https://www.wowhead.com/achievement=40430/khaz-algar-flight-master
+    local _, _, _, completed = GetAchievementInfo(40430)
+    if not completed then
+      -- print("multiply by 1.25")
+      return 1.25
+    end
+  end
+
+  -- print("multiply by 1")
+  return 1
+end
 
 
 
