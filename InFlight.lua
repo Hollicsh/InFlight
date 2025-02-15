@@ -669,7 +669,10 @@ function InFlight:StartMiscFlight(src, dst)  -- called from InFlight_Load for sp
   taxiSrc = src
   taxiDstName = L[dst]
   taxiDst = dst
-  endTime = vars[src] and vars[src][dst] * self:KhazAlgarFlightMasterFactor(taxiSrc)
+  endTime = vars[src] and vars[src][dst]
+  if endTime then
+     endTime = endTime * self:KhazAlgarFlightMasterFactor(taxiSrc)
+  end
   endText = FormatTime(endTime)
   self:StartTimer()
 end
@@ -771,7 +774,10 @@ do  -- timer bar
           end
 
           vars[taxiSrc] = vars[taxiSrc] or { name = taxiSrcName }
-          local oldTime = vars[taxiSrc][taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+          local oldTime = vars[taxiSrc][taxiDst]
+          if oldTime then
+            oldTime = oldTime * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+          end
           local newTime = floor(totalTime + 0.5)
 
 
