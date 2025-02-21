@@ -800,7 +800,7 @@ do  -- timer bar
             newPlayerSaveData[faction][taxiSrc][taxiDst] = newTime
           end
 
-          vars[taxiSrc][taxiDst] = newTime / InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+          vars[taxiSrc][taxiDst] = floor(newTime / InFlight:KhazAlgarFlightMasterFactor(taxiDst) + 0.5)
 
 
           if msg and db.chatlog then
