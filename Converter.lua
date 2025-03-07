@@ -93,11 +93,6 @@ StaticPopupDialogs[popupName] = {
 
 
 
-
-
-
-
-
 -- Sort mixed keys (numbers and strings).
 local function SortKeys(tableToSort)
 
@@ -123,256 +118,6 @@ local function SortKeys(tableToSort)
   return sortedKeys
 end
 
-
-
-
-
-
--- ###########################################################################################################
--- ########## Identify flight points in Khaz Algar to handle "Khaz Algar Flight Master" speed boost. #########
--- ###########################################################################################################
-
--- https://warcraft.wiki.gg/wiki/API_C_Map.GetMapInfo
--- https://warcraft.wiki.gg/wiki/UiMapID
-
-local function GetKhazAlgarNodes()
-
-  local khazAlgarNodes = {}
-
-  local khazAlgarMapId = 2274
-  local cosmicMapId = 947
-
-  local function GetFinalParent(uiMapID)
-    local mapInfo = C_Map.GetMapInfo(uiMapID)
-    -- print(uiMapID, mapInfo.mapID, mapInfo.name, mapInfo.parentMapID)
-    if mapInfo.parentMapID == 0 or mapInfo.parentMapID == cosmicMapId then
-      return mapInfo.mapID
-    else
-      return GetFinalParent(mapInfo.parentMapID)
-    end
-  end
-
-  -- Go through all map IDs.
-  for uiMapID = 1, 2500 do
-
-    local mapInfo = C_Map.GetMapInfo(uiMapID)
-    if mapInfo and mapInfo.mapID and GetFinalParent(mapInfo.mapID) == khazAlgarMapId then
-      -- print("----------", mapInfo.mapID, mapInfo.name, mapInfo.parentMapID, GetFinalParent(uiMapID))
-
-      local taxiNodes = C_TaxiMap.GetTaxiNodesForMap(mapInfo.mapID)
-      if taxiNodes and #taxiNodes > 0 then
-
-        -- print("+++++", mapInfo.mapID, mapInfo.name, #taxiNodes)
-        for _, v in pairs(taxiNodes) do
-          -- print("    ", v.nodeID, v.name)
-          khazAlgarNodes[v.nodeID] = true
-        end
-      end
-    end
-  end  -- Go through all map IDs.
-
-  return khazAlgarNodes
-end
-
-local khazAlgarNodes = GetKhazAlgarNodes()
-
-function InFlight:KhazAlgarFlightMasterFactor(nodeID)
-  -- print("KhazAlgarFlightMasterFactor", nodeID)
-  if khazAlgarNodes[nodeID] then
-    -- https://www.wowhead.com/achievement=40430/khaz-algar-flight-master
-    local _, _, _, completed = GetAchievementInfo(40430)
-    if not completed then
-      -- print("multiply by 1.25")
-      return 1.25
-    end
-  end
-
-  -- print("multiply by 1")
-  return 1
-end
-
-
-
-
--- ##############################################################
--- ########## Convert names (InFlight Classic) to IDs. ##########
--- ##############################################################
-
--- Function used by InFlight.
-local function ShortenName(name)
-	return gsub(name, ", .+", "")
-end
-
-
-
-
-function GetNameToId()
-
-  local nameToId = {}
-
-  -- Go through all map IDs.
-  for uiMapID = 1, 2500 do
-
-    local mapInfo = C_Map.GetMapInfo(uiMapID)
-
-    -- If this is a map.
-    if mapInfo and mapInfo.mapID and mapInfo.mapID == uiMapID then
-
-      -- Get all taxi nodes.
-      local taxiNodes = C_TaxiMap.GetTaxiNodesForMap(mapInfo.mapID)
-      if taxiNodes and #taxiNodes > 0 then
-
-        -- print(mapInfo.mapID, mapInfo.name, #taxiNodes)
-
-        -- Go through all nodes.
-        for _, v in pairs(taxiNodes) do
-
-          -- InFlight Classic used short names.
-          local shortName = ShortenName(v.name)
-
-          -- print("    ", v.nodeID, shortName, v.name, mapInfo.name)
-
-          -- We already have an entry.
-          if nameToId[shortName] then
-
-
-            -- We already have at least two entries.
-            if type(nameToId[shortName]) == "table" then
-
-              -- Check if this ID is already there.
-              local alreadyInTable = nil
-              for _, v2 in pairs(nameToId[shortName]) do
-                if v2 == v.nodeID then
-                  alreadyInTable = true
-                  break
-                end
-              end
-
-              if not alreadyInTable then
-                tinsert(nameToId[shortName], v.nodeID)
-                -- print("!!!!", v.nodeID, shortName, "has more than two IDs")
-              end
-
-            -- We already have one entry.
-            else
-
-              if nameToId[shortName] ~= v.nodeID then
-                nameToId[shortName] = {nameToId[shortName], v.nodeID}
-                -- print("----", v.nodeID, shortName, "has more than one ID")
-              end
-
-            end
-
-          -- We have no entry yet.
-          else
-
-            nameToId[shortName] = v.nodeID
-
-          end
-
-        end   -- Go through all nodes.
-
-      end
-
-    end
-
-  end  -- Go through all map IDs.
-
-  return nameToId
-end
-
-
-
-
-
-local function NodeNameToId(name, faction, nameToId)
-
-  -- To check if the node of that name has the same ID in retail.
-  local referenceTable = InFlight.defaults.global
-
-
-  if not nameToId[name] then
-    print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID")
-    return -1
-  end
-
-
-  if type(nameToId[name]) == "table" then
-
-    -- Check in retail nodes.
-    for sourceNodeId, data in pairs(referenceTable[faction]) do
-
-      if data.name and data.name == name then
-
-        -- Check if we got the same ID in nameToId.
-        for _, v in pairs(nameToId[name]) do
-          if sourceNodeId == v then
-            -- print("+++++++++ Identified", name, faction, "to be", sourceNodeId)
-            return sourceNodeId
-          end
-        end
-
-        print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID")
-        return -2
-
-      end
-
-    end
-
-    -- print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID. Got to fall back to names as keys.")
-    return -3
-
-  else
-
-    return nameToId[name]
-
-  end
-
-end
-
-
-
-
-
--- Convert table of nodes with node names to a table of nodes with node IDs,
--- as given by the nameToId table.
-local function ReplaceNodeNamesWithIDs(nodesWithNames, nameToId)
-
-  local nodesWithIDs = {}
-  nodesWithIDs["Alliance"] = {}
-  nodesWithIDs["Horde"] = {}
-
-  for faction, factionNodes in pairs(nodesWithNames) do
-
-    for sourceNodeName, destNodes in pairs(factionNodes) do
-
-      local sourceNodeId = NodeNameToId(sourceNodeName, faction, nameToId)
-      if sourceNodeId == -3 then
-        sourceNodeId = sourceNodeName
-      end
-
-      -- print(sourceNodeName, "to", sourceNodeId)
-
-      nodesWithIDs[faction][sourceNodeId] = {}
-      nodesWithIDs[faction][sourceNodeId]["name"] = sourceNodeName
-
-      for destNodeName, flightTime in pairs(destNodes) do
-
-        local destNodeId = NodeNameToId(destNodeName, faction, nameToId)
-        if sourceNodeId == sourceNodeName then
-          destNodeId = destNodeName
-        end
-
-        nodesWithIDs[faction][sourceNodeId][destNodeId] = flightTime
-
-      end
-
-    end
-
-  end
-
-  return nodesWithIDs
-end
 
 
 
@@ -434,10 +179,324 @@ end
 
 
 
--- Use data from Defaults.lua of InFlight_Classic_Era-1.15.002.
--- Delete "Revantusk", which seemed to be a duplicated of "Revantusk Village".
--- local oldClassicNodes = {
--- ...
+
+
+
+
+
+
+
+
+-- #######################################################################
+-- ########## Function to fetch all nodes within a certain zone. #########
+-- #######################################################################
+
+-- https://warcraft.wiki.gg/wiki/API_C_Map.GetMapInfo
+-- https://warcraft.wiki.gg/wiki/UiMapID
+
+
+local function GetNodesInMap(parentMapId, nodes)
+
+  -- Return true if ancestorUiMapID is uiMapID or one of its ancestors.
+  local function FindAncestor(uiMapID, ancestorUiMapID, verbose)
+    if uiMapID == ancestorUiMapID then return true end
+
+    local mapInfo = C_Map.GetMapInfo(uiMapID)
+    if verbose then print(mapInfo.mapID, mapInfo.name, "is child of", mapInfo.parentMapID) end
+
+    if mapInfo.parentMapID == 0 then
+      if verbose then print("   no more parents") end
+      return false
+    else
+      return FindAncestor(mapInfo.parentMapID, ancestorUiMapID, verbose)
+    end
+  end
+
+
+  -- Go through all map IDs.
+  for uiMapID = 1, 2500 do
+
+    local mapInfo = C_Map.GetMapInfo(uiMapID)
+
+    -- Uncomment this to search for among all nodes.
+    -- if mapInfo and mapInfo.mapID then
+    if mapInfo and mapInfo.mapID and FindAncestor(mapInfo.mapID, parentMapId) then
+
+      -- print("----------", mapInfo.mapID, mapInfo.name, mapInfo.parentMapID)
+
+      local taxiNodes = C_TaxiMap.GetTaxiNodesForMap(mapInfo.mapID)
+      if taxiNodes and #taxiNodes > 0 then
+        -- print("+++++", mapInfo.mapID, mapInfo.name, #taxiNodes)
+
+        for _, v in pairs(taxiNodes) do
+
+          -- Uncomment this to search for a specific nodes.
+          -- if v.nodeID == 2548 then
+            -- print(v.nodeID, "is on map", mapInfo.mapID)
+          -- end
+
+          nodes[v.nodeID] = true
+        end
+
+      end
+
+    end
+  end  -- Go through all map IDs.
+
+end
+
+
+
+
+-- #################################################################################################
+-- ########## Get nodes for zones that don't have faction specific flight masters any more #########
+-- #################################################################################################
+
+-- We need this separately for the "Khaz Algar Flight Master" speed boost.
+local khazAlgarNodes = {}
+
+
+local startupFrame = CreateFrame("Frame")
+startupFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+startupFrame:SetScript("OnEvent", function(self, _, isLogin, isReload)
+  if not isLogin and not isReload then return end
+
+  local noFactionsZoneNodes = {}
+  InFlight.noFactionsZoneNodes = noFactionsZoneNodes
+
+
+  -- Shadowlands
+  GetNodesInMap(1550, noFactionsZoneNodes)
+  -- Not found on any map by GetTaxiNodesForMap().
+  noFactionsZoneNodes[2528] = true   -- "Elysian Hold"
+  noFactionsZoneNodes[2548] = true   -- "Sinfall"
+
+
+  -- Dragon Isles
+  -- (2057 works, but misses the following nodes)
+  --   2847-2851 The Nokhud Offensive
+  --   2860      Aberrus Upper Platform (???)
+  --   2902-2905 Emerald Dream
+  GetNodesInMap(1978, noFactionsZoneNodes)
+  -- Not found on any map by GetTaxiNodesForMap().
+  noFactionsZoneNodes[2804] = true   -- "Uktulut Backwater"
+
+
+  -- Khaz Algar
+  -- (2248 does not work)
+  GetNodesInMap(2274, khazAlgarNodes)
+
+  for i, _ in pairs(khazAlgarNodes) do
+    noFactionsZoneNodes[i] = true
+  end
+  
+  self:UnregisterAllEvents()
+end)
+
+
+
+-- ####################################################################################
+-- ########## Return factor to handle "Khaz Algar Flight Master" speed boost. #########
+-- ####################################################################################
+
+function InFlight:KhazAlgarFlightMasterFactor(nodeID)
+  -- print("KhazAlgarFlightMasterFactor", nodeID)
+  if khazAlgarNodes[nodeID] then
+    -- https://www.wowhead.com/achievement=40430/khaz-algar-flight-master
+    local _, _, _, completed = GetAchievementInfo(40430)
+    if not completed then
+      -- print("multiply by 1.25")
+      return 1.25
+    end
+  end
+
+  -- print("multiply by 1")
+  return 1
+end
+
+
+
+
+
+-- ##################################################################
+-- ########## Convert names (old InFlight Classic) to IDs. ##########
+-- ##################################################################
+
+-- -- Function used by InFlight.
+-- local function ShortenName(name)
+	-- return gsub(name, ", .+", "")
+-- end
+
+
+-- function GetNameToId()
+
+  -- local nameToId = {}
+
+  -- -- Go through all map IDs.
+  -- for uiMapID = 1, 2500 do
+
+    -- local mapInfo = C_Map.GetMapInfo(uiMapID)
+
+    -- -- If this is a map.
+    -- if mapInfo and mapInfo.mapID and mapInfo.mapID == uiMapID then
+
+      -- -- Get all taxi nodes.
+      -- local taxiNodes = C_TaxiMap.GetTaxiNodesForMap(mapInfo.mapID)
+      -- if taxiNodes and #taxiNodes > 0 then
+
+        -- -- print(mapInfo.mapID, mapInfo.name, #taxiNodes)
+
+        -- -- Go through all nodes.
+        -- for _, v in pairs(taxiNodes) do
+
+          -- -- InFlight Classic used short names.
+          -- local shortName = ShortenName(v.name)
+
+          -- -- print("    ", v.nodeID, shortName, v.name, mapInfo.name)
+
+          -- -- We already have an entry.
+          -- if nameToId[shortName] then
+
+            -- -- We already have at least two entries.
+            -- if type(nameToId[shortName]) == "table" then
+
+              -- -- Check if this ID is already there.
+              -- local alreadyInTable = nil
+              -- for _, v2 in pairs(nameToId[shortName]) do
+                -- if v2 == v.nodeID then
+                  -- alreadyInTable = true
+                  -- break
+                -- end
+              -- end
+
+              -- if not alreadyInTable then
+                -- tinsert(nameToId[shortName], v.nodeID)
+                -- -- print("!!!!", v.nodeID, shortName, "has more than two IDs")
+              -- end
+
+            -- -- We already have one entry.
+            -- else
+
+              -- if nameToId[shortName] ~= v.nodeID then
+                -- nameToId[shortName] = {nameToId[shortName], v.nodeID}
+                -- -- print("----", v.nodeID, shortName, "has more than one ID")
+              -- end
+
+            -- end
+
+          -- -- We have no entry yet.
+          -- else
+
+            -- nameToId[shortName] = v.nodeID
+
+          -- end
+
+        -- end   -- Go through all nodes.
+
+      -- end
+
+    -- end
+
+  -- end  -- Go through all map IDs.
+
+  -- return nameToId
+-- end
+
+
+
+-- local function NodeNameToId(name, faction, nameToId)
+
+  -- -- To check if the node of that name has the same ID in retail.
+  -- local referenceTable = InFlight.defaults.global
+
+
+  -- if not nameToId[name] then
+    -- print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID")
+    -- return -1
+  -- end
+
+
+  -- if type(nameToId[name]) == "table" then
+
+    -- -- Check in retail nodes.
+    -- for sourceNodeId, data in pairs(referenceTable[faction]) do
+
+      -- if data.name and data.name == name then
+
+        -- -- Check if we got the same ID in nameToId.
+        -- for _, v in pairs(nameToId[name]) do
+          -- if sourceNodeId == v then
+            -- -- print("+++++++++ Identified", name, faction, "to be", sourceNodeId)
+            -- return sourceNodeId
+          -- end
+        -- end
+
+        -- print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID")
+        -- return -2
+
+      -- end
+
+    -- end
+
+    -- -- print("!!!!!!!!!!!!!!!!!!", name, faction, "has no ID. Got to fall back to names as keys.")
+    -- return -3
+
+  -- else
+
+    -- return nameToId[name]
+
+  -- end
+
+-- end
+
+
+
+-- -- Convert table of nodes with node names to a table of nodes with node IDs,
+-- -- as given by the nameToId table.
+-- local function ReplaceNodeNamesWithIDs(nodesWithNames, nameToId)
+
+  -- local nodesWithIDs = {}
+  -- nodesWithIDs["Alliance"] = {}
+  -- nodesWithIDs["Horde"] = {}
+
+  -- for faction, factionNodes in pairs(nodesWithNames) do
+
+    -- for sourceNodeName, destNodes in pairs(factionNodes) do
+
+      -- local sourceNodeId = NodeNameToId(sourceNodeName, faction, nameToId)
+      -- if sourceNodeId == -3 then
+        -- sourceNodeId = sourceNodeName
+      -- end
+
+      -- -- print(sourceNodeName, "to", sourceNodeId)
+
+      -- nodesWithIDs[faction][sourceNodeId] = {}
+      -- nodesWithIDs[faction][sourceNodeId]["name"] = sourceNodeName
+
+      -- for destNodeName, flightTime in pairs(destNodes) do
+
+        -- local destNodeId = NodeNameToId(destNodeName, faction, nameToId)
+        -- if sourceNodeId == sourceNodeName then
+          -- destNodeId = destNodeName
+        -- end
+
+        -- nodesWithIDs[faction][sourceNodeId][destNodeId] = flightTime
+
+      -- end
+
+    -- end
+
+  -- end
+
+  -- return nodesWithIDs
+-- end
+
+
+
+-- -- Use data from Defaults.lua of InFlight_Classic_Era-1.15.002.
+-- -- Delete "Revantusk", which seemed to be a duplicated of "Revantusk Village".
+-- -- local oldClassicNodes = {
+-- -- ...
 
 -- local nameToId = GetNameToId()
 -- local newClassicNodes = ReplaceNodeNamesWithIDs(oldClassicNodes, nameToId)
@@ -450,52 +509,57 @@ end
 
 
 
--- ############################################################
--- ########## Merge old faction format into unified. ##########
--- ############################################################
--- It was a nice idea, but there are in fact different flight times between the same nodes (at least in classic):
+
+
+
+
+-- #########################################################
+-- ########## Merge noFactionsZoneNodes into one. ##########
+-- #########################################################
+-- Can only do this for noFactionsZoneNodes, otherwise there might be different flight times between the nodes. E.g.:
 -- https://classictinker.com/flight-master/?fromLoc=Ratchet%2C%20The%20Barrens&toLoc=Marshal%27s%20Refuge%2C%20Un%27Goro%20Crater&faction=alliance  (6 min)
 -- https://classictinker.com/flight-master/?fromLoc=Ratchet%2C%20The%20Barrens&toLoc=Marshal%27s%20Refuge%2C%20Un%27Goro%20Crater&faction=horde     (8 min)
--- TODO: Do a unification for all node IDs in ranges where we know it is only unified expansions?
 
 
-local function MergeFactions(input)
+function InFlight:MergeFactions(defaults)
 
-  local output = {}
+  defaults["FactionslessZones"] = defaults["FactionslessZones"] or {}
 
-  -- Copy all Alliance into output.
-  for src, destNodes in pairs(input["Alliance"]) do
-    for dst, dTimeOrName in pairs(destNodes) do
-      output[src] = output[src] or {}
-      output[src][dst] = dTimeOrName
-    end
-  end
+  for nodeID, _ in pairs(noFactionsZoneNodes) do
 
-  -- Merge Horde into Alliance!
-  for src, destNodes in pairs(input["Horde"]) do
-    for dst, dTimeOrName in pairs(destNodes) do
-      if not output[src] or not output[src][dst] then
-        output[src] = output[src] or {}
-        output[src][dst] = dTimeOrName
-      else
-        if dst == "name" then
-          if output[src][dst] ~= dTimeOrName then
-            print("Got different names for Alliance", output[src][dst], "and Horde", dTimeOrName)
-          end
-        else
-          if abs(output[src][dst] - dTimeOrName) > 2 then
-            print("Got different times for", output[src] and output[src]["name"] or "<unknown>", "to", output[dst] and output[dst]["name"] or "<unknown>", "Alliance", output[src][dst], "and Horde", dTimeOrName)
-          end
-        end
+    if defaults["Alliance"] and defaults["Alliance"][nodeID] then
+
+      defaults["FactionslessZones"][nodeID] = defaults["FactionslessZones"][nodeID] or {}
+
+      for i, k in pairs(defaults["Alliance"][nodeID]) do
+        defaults["FactionslessZones"][nodeID][i] = k
       end
+      
+      defaults["Alliance"][nodeID] = nil
     end
+
+    if defaults["Horde"] and defaults["Horde"][nodeID] then
+
+      defaults["FactionslessZones"][nodeID] = defaults["FactionslessZones"][nodeID] or {}
+
+      for i, k in pairs(defaults["Horde"][nodeID]) do
+
+        if defaults["FactionslessZones"][nodeID][i] and i ~= "name" and abs(defaults["FactionslessZones"][nodeID][i] - k) > 2 then
+          print("Got a difference of", abs(defaults["FactionslessZones"][nodeID][i] - k), "for", defaults["FactionslessZones"][nodeID]["name"], "to", i)
+        end
+
+        if not defaults["FactionslessZones"][nodeID][i] or i == "name" or defaults["FactionslessZones"][nodeID][i] > k then
+          defaults["FactionslessZones"][nodeID][i] = k
+        end
+
+      end
+
+      defaults["Horde"][nodeID] = nil
+    end
+
   end
 
-  return output
 end
-
-
-
 
 
 
@@ -504,12 +568,6 @@ end
 -- ####################################################
 -- ########## Import data uploaded by users. ##########
 -- ####################################################
-
-
--- Paste uploaded user data here and uncomment ImportUserUpload(defaults, myImport, false) below.
-local myImport = {}
-
-
 
 
 local function ImportUserUpload(defaults, import, ignoreNames)
@@ -551,20 +609,18 @@ local function ImportUserUpload(defaults, import, ignoreNames)
 end
 
 
-local defaults = InFlight.defaults.global
+
+-- Paste uploaded user data here and uncomment ImportUserUpload(defaults, myImport, false) below.
+local myImport = {}
 
 
--- Uncomment to get new default data.
--- Set third argument to true, for imports that are not english.
-
--- ImportUserUpload(defaults, myImport, false)
--- local exportText = GetExportText("global", defaults, "  ")
+-- -- Uncomment to get new default data.
+-- -- Set third argument to true, for imports that are not english.
+-- local defaultsGlobal = InFlight.defaults.global
+-- ImportUserUpload(defaultsGlobal, myImport, false)
+-- local exportText = GetExportText("global", defaultsGlobal, "  ")
 -- editbox:SetText(exportText)
 -- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
-
-
-
-
 
 
 
