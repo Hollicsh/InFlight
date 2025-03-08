@@ -187,14 +187,15 @@ end
 
 
 
--- #######################################################################
--- ########## Function to fetch all nodes within a certain zone. #########
--- #######################################################################
+-- ##################################################################################################
+-- ########## Get nodes for zones that don't have faction specific flight masters any more. #########
+-- ##################################################################################################
 
+
+
+-- Function to fetch all nodes within a certain zone.
 -- https://warcraft.wiki.gg/wiki/API_C_Map.GetMapInfo
 -- https://warcraft.wiki.gg/wiki/UiMapID
-
-
 local function GetNodesInMap(parentMapId, nodes)
 
   -- Return true if ancestorUiMapID is uiMapID or one of its ancestors.
@@ -237,61 +238,48 @@ local function GetNodesInMap(parentMapId, nodes)
 
           nodes[v.nodeID] = true
         end
-
       end
-
     end
   end  -- Go through all map IDs.
-
 end
 
 
 
 
--- #################################################################################################
--- ########## Get nodes for zones that don't have faction specific flight masters any more #########
--- #################################################################################################
+local noFactionsZoneNodes = {}
+InFlight.noFactionsZoneNodes = noFactionsZoneNodes
+
+
+-- Shadowlands
+GetNodesInMap(1550, noFactionsZoneNodes)
+-- Not found on any map by GetTaxiNodesForMap().
+noFactionsZoneNodes[2528] = true   -- "Elysian Hold"
+noFactionsZoneNodes[2548] = true   -- "Sinfall"
+
+
+-- Dragon Isles
+-- (2057 works, but misses the following nodes)
+--   2847-2851 The Nokhud Offensive
+--   2860      Aberrus Upper Platform (???)
+--   2902-2905 Emerald Dream
+GetNodesInMap(1978, noFactionsZoneNodes)
+-- Not found on any map by GetTaxiNodesForMap().
+noFactionsZoneNodes[2804] = true   -- "Uktulut Backwater"
+
+
+-- Khaz Algar
 
 -- We need this separately for the "Khaz Algar Flight Master" speed boost.
 local khazAlgarNodes = {}
 
+-- (2248 does not work)
+GetNodesInMap(2274, khazAlgarNodes)
 
-local startupFrame = CreateFrame("Frame")
-startupFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-startupFrame:SetScript("OnEvent", function(self, _, isLogin, isReload)
-  if not isLogin and not isReload then return end
-
-  local noFactionsZoneNodes = {}
-  InFlight.noFactionsZoneNodes = noFactionsZoneNodes
+for i, _ in pairs(khazAlgarNodes) do
+  noFactionsZoneNodes[i] = true
+end
 
 
-  -- Shadowlands
-  GetNodesInMap(1550, noFactionsZoneNodes)
-  -- Not found on any map by GetTaxiNodesForMap().
-  noFactionsZoneNodes[2528] = true   -- "Elysian Hold"
-  noFactionsZoneNodes[2548] = true   -- "Sinfall"
-
-
-  -- Dragon Isles
-  -- (2057 works, but misses the following nodes)
-  --   2847-2851 The Nokhud Offensive
-  --   2860      Aberrus Upper Platform (???)
-  --   2902-2905 Emerald Dream
-  GetNodesInMap(1978, noFactionsZoneNodes)
-  -- Not found on any map by GetTaxiNodesForMap().
-  noFactionsZoneNodes[2804] = true   -- "Uktulut Backwater"
-
-
-  -- Khaz Algar
-  -- (2248 does not work)
-  GetNodesInMap(2274, khazAlgarNodes)
-
-  for i, _ in pairs(khazAlgarNodes) do
-    noFactionsZoneNodes[i] = true
-  end
-  
-  self:UnregisterAllEvents()
-end)
 
 
 
@@ -545,7 +533,7 @@ function InFlight:MergeFactions(defaults)
       for i, k in pairs(defaults["Horde"][nodeID]) do
 
         if defaults["FactionslessZones"][nodeID][i] and i ~= "name" and abs(defaults["FactionslessZones"][nodeID][i] - k) > 2 then
-          print("Got a difference of", abs(defaults["FactionslessZones"][nodeID][i] - k), "for", defaults["FactionslessZones"][nodeID]["name"], "to", i)
+          -- print("Got a difference of", abs(defaults["FactionslessZones"][nodeID][i] - k), "for", defaults["FactionslessZones"][nodeID]["name"], "to", i)
         end
 
         if not defaults["FactionslessZones"][nodeID][i] or i == "name" or defaults["FactionslessZones"][nodeID][i] > k then
@@ -569,6 +557,12 @@ end
 -- ########## Import data uploaded by users. ##########
 -- ####################################################
 
+local function TableLength(t)
+  local count = 0
+  for _ in pairs(t) do count = count + 1 end
+  return count
+end
+
 
 local function ImportUserUpload(defaults, import, ignoreNames)
   local updated = 0
@@ -576,9 +570,10 @@ local function ImportUserUpload(defaults, import, ignoreNames)
   for faction, factionNodes in pairs(import) do
     for src, destNodes in pairs(factionNodes) do
       if not defaults[faction][src] then
+        print("New node", src, TableLength(destNodes))
         defaults[faction][src] = destNodes
-        updated = updated + #destNodes
-        if ignoreNames then
+        updated = updated + TableLength(destNodes)
+        if ignoreNames and destNodes["name"] then
           defaults[faction][src]["name"] = nil
           updated = updated - 1
         end
@@ -618,6 +613,7 @@ local myImport = {}
 -- -- Set third argument to true, for imports that are not english.
 -- local defaultsGlobal = InFlight.defaults.global
 -- ImportUserUpload(defaultsGlobal, myImport, false)
+-- -- InFlight:MergeFactions(defaultsGlobal)
 -- local exportText = GetExportText("global", defaultsGlobal, "  ")
 -- editbox:SetText(exportText)
 -- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)

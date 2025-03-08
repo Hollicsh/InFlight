@@ -394,8 +394,8 @@ function InFlight:LoadBulk()
   if select(4, GetBuildInfo()) >= 40000 then
 
     -- Number of the InFlight version the last DB change took place.
-    -- Here 11.1.003
-    if InFlightDB.dbinit < 1101003 then
+    -- Here 11.1.004
+    if InFlightDB.dbinit < 1101004 then
 
       -- Very old DB must be reset!
       if InFlightDB.dbinit < 920 then
@@ -406,7 +406,7 @@ function InFlight:LoadBulk()
         InFlight:MergeFactions(InFlightDB.global)
       end
 
-      InFlightDB.dbinit = 1101003
+      InFlightDB.dbinit = 1101004
     end
 
 
