@@ -511,6 +511,8 @@ end
 
 function InFlight:MergeFactions(defaults)
 
+  if not defaults then return end
+
   defaults["FactionslessZones"] = defaults["FactionslessZones"] or {}
 
   for nodeID, _ in pairs(noFactionsZoneNodes) do
