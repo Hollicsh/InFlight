@@ -382,6 +382,10 @@ function InFlight:LoadBulk()
     InFlightDB = { profiles = { Default = tempDB }}
   end
 
+  -- To prevent "compare nil with number" error.
+  if not InFlightDB.dbinit then
+    InFlightDB.dbinit = 0
+  end
 
   -- Flag to clear player save data, if corrupted data has been introduced into the
   -- player save data from a bug in the game or this addon, and therefore the player
