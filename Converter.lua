@@ -275,6 +275,11 @@ local khazAlgarNodes = {}
 -- (2248 does not work)
 GetNodesInMap(2274, khazAlgarNodes)
 
+-- "Tranquil Strand" is on no map before you have completed the campaign quest.
+if not khazAlgarNodes[2970] then
+  khazAlgarNodes[2970] = true
+end
+
 for i, _ in pairs(khazAlgarNodes) do
   noFactionsZoneNodes[i] = true
 end
@@ -572,7 +577,7 @@ local function ImportUserUpload(defaults, import, ignoreNames)
   for faction, factionNodes in pairs(import) do
     for src, destNodes in pairs(factionNodes) do
       if not defaults[faction][src] then
-        print("New node", src, TableLength(destNodes))
+        print("New node", faction, src, TableLength(destNodes))
         defaults[faction][src] = destNodes
         updated = updated + TableLength(destNodes)
         if ignoreNames and destNodes["name"] then
@@ -589,7 +594,7 @@ local function ImportUserUpload(defaults, import, ignoreNames)
           else
             if dst == "name" then
               if defaults[faction][src][dst] ~= dtimeOrName and not ignoreNames then
-                print("Got a different name", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "to", defaults[faction][dst] and defaults[faction][dst]["name"] or "<unknown>", dst, "is now", dtimeOrName, "but has so far been", defaults[faction][src][dst])
+                print("Got a different name", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "is now", dtimeOrName)
                 defaults[faction][src][dst] = dtimeOrName
               end
             elseif abs(defaults[faction][src][dst] - dtimeOrName) > 2 then

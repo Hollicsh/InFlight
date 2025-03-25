@@ -497,6 +497,9 @@ function InFlight:LoadBulk()
     end
 
 
+    -- TODO: Remove recently updated flight paths from player save data.
+
+
     -- Store new player save data for export.
     local found = 0
     local newPlayerSaveData = InFlight.newPlayerSaveData
@@ -524,7 +527,7 @@ function InFlight:LoadBulk()
   end
 
 
-  -- Free nodes of the opposing faction for garbage collection to safe memory.
+  -- Free nodes of the opposing faction for garbage collection to save memory.
   if not debug then
     self.defaults.global[playerFaction == "Alliance" and "Horde" or "Alliance"] = nil
   end
