@@ -596,10 +596,12 @@ local function ImportUserUpload(defaults, import, ignoreNames)
               if defaults[faction][src][dst] ~= dtimeOrName and not ignoreNames then
                 print("Got a different name", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "is now", dtimeOrName)
                 defaults[faction][src][dst] = dtimeOrName
+                updated = updated + 1
               end
             elseif abs(defaults[faction][src][dst] - dtimeOrName) > 2 then
               print("Got a different time", faction, defaults[faction][src] and defaults[faction][src]["name"] or "<unknown>", src, "to", defaults[faction][dst] and defaults[faction][dst]["name"] or "<unknown>", dst, "is now", dtimeOrName, "has so far been", defaults[faction][src][dst])
               defaults[faction][src][dst] = dtimeOrName
+              updated = updated + 1
             end
           end
         end
