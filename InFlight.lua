@@ -397,22 +397,13 @@ function InFlight:LoadBulk()
   -- post-cata
   if select(4, GetBuildInfo()) >= 40000 then
 
-    -- Number of the InFlight version the last DB change took place.
-    -- Here 11.1.005
-    if InFlightDB.dbinit < 1101005 then
 
-      -- Very old DB must be reset!
-      if InFlightDB.dbinit < 920 then
-        resetDB = true
-
-      -- Recent DB gets updated.
-      else
-        if InFlightDB.global then
-          InFlight:MergeFactions(InFlightDB.global)
-        end
-      end
-
-      InFlightDB.dbinit = 1101005
+    -- Too many people still seem to have old data from before the
+    -- achievement boosts were taken into account.
+    -- So we start with a clean slate.
+    if InFlightDB.dbinit < 1101012 then
+      resetDB = true
+      InFlightDB.dbinit = 1101012
     end
 
 
