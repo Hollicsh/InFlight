@@ -74,6 +74,15 @@ end
 -------------------------------------
 function InFlight:TAXIMAP_OPENED(...)
 -------------------------------------
+
+  -- Flight map might change (Dragon Isles / Zaralek Cavern).
+  if not FlightMapFrame.inflight_hook then
+    hooksecurefunc(FlightMapFrame, "SetMapID", function()
+      InFlight:InitSource(false)
+    end)
+    FlightMapFrame.inflight_hook = true
+  end
+
   local uiMapSystem = ...
   local isTaxiMap = uiMapSystem == Enum.UIMapSystem.Taxi
   self:InitSource(isTaxiMap)
@@ -214,8 +223,17 @@ local function ShortenName(name)  -- shorten name to lighten saved variables and
   return gsub(name, L["DestParse"], "")
 end
 
+-- GetTaxiMapID() does not take into account if the map was changed (Dragon Isles / Zaralek Cavern).
+local function GetViewedTaxiMapID()
+  if FlightMapFrame and FlightMapFrame.GetMapID then
+    return FlightMapFrame:GetMapID()
+  else
+    return GetTaxiMapID()
+  end
+end
+
 local function GetNodeID(slot)
-  local taximapNodes = C_TaxiMap.GetAllTaxiNodes(GetTaxiMapID())
+  local taximapNodes = C_TaxiMap.GetAllTaxiNodes(GetViewedTaxiMapID())
   for _, taxiNodeData in ipairs(taximapNodes) do
     if (slot == taxiNodeData.slotIndex) then
       return taxiNodeData.nodeID
@@ -316,11 +334,6 @@ local function postTaxiNodeOnButtonEnter(button) -- adds duration info to taxi n
 end
 
 local function postFlightNodeOnButtonEnter(button) -- adds duration info to flight node tooltips
-  -- if button.taxiNodeData.state == Enum.FlightPathState.Current and GetTaxiMapID() ~= 994 then -- TEST
-     -- gtt:AddLine("NodeID: "..button.taxiNodeData.nodeID, 0.2, 0.8, 0.2)
-     -- gtt:Show()
-     -- return
-  -- end
 
   if button.taxiNodeData.state ~= Enum.FlightPathState.Reachable or GetTaxiMapID() == 994 then
     return
@@ -560,6 +573,11 @@ function InFlight:LoadBulk()
     taxiDstName = ShortenName(TaxiNodeName(slot))
     taxiDst = GetNodeID(slot)
 
+    if not taxiDst then
+      oldTakeTaxiNode(slot)
+      return
+    end
+
     local dstNodes = GetDstNodes(taxiSrc, playerFaction)
     if dstNodes and dstNodes[taxiDst] and dstNodes[taxiDst] > 0 then  -- saved variables lookup
       endTime = dstNodes[taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
@@ -619,6 +637,11 @@ end
 ---------------------------------------
 function InFlight:InitSource(isTaxiMap)  -- cache source location and hook tooltips
 ---------------------------------------
+
+  -- Remember last source, for when a flight paths spans several maps (Dragon Isles <-> Zaralek Cavern).
+  local lastTaxiSrcName = taxiSrcName
+  local lastTaxiSrc     = taxiSrc
+
   taxiSrcName = nil
   taxiSrc = nil
 
@@ -652,10 +675,25 @@ function InFlight:InitSource(isTaxiMap)  -- cache source location and hook toolt
     end
   end
 
-  -- Workaround for Blizzard bug on OutLand Flight Map
-  if not taxiSrc and GetTaxiMapID() == 1467 and GetMinimapZoneText() == L["Shatter Point"] then
-    taxiSrcName = L["Shatter Point"]
-    taxiSrc = "Shatter Point"
+  if not taxiSrc then
+
+    local taxiMapID = GetViewedTaxiMapID()
+
+    -- Workaround for Blizzard bug on OutLand Flight Map
+    if taxiMapID == 1467 and GetMinimapZoneText() == L["Shatter Point"] then
+      taxiSrcName = L["Shatter Point"]
+      taxiSrc = "Shatter Point"
+
+    -- Flying between Dragon Isles (2057) and Zaralek Cavern (2175).
+    elseif taxiMapID == 2057 or taxiMapID == 2175 then
+      taxiSrcName = lastTaxiSrcName
+      taxiSrc     = lastTaxiSrc
+
+    else
+      print("InFlight could not find taxi source node in flight map", taxiMapID)
+
+    end
+
   end
 end
 
