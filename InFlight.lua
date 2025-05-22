@@ -76,7 +76,7 @@ function InFlight:TAXIMAP_OPENED(...)
 -------------------------------------
 
   -- Flight map might change (Dragon Isles / Zaralek Cavern).
-  if not FlightMapFrame.inflight_hook then
+  if FlightMapFrame and not FlightMapFrame.inflight_hook then
     hooksecurefunc(FlightMapFrame, "SetMapID", function()
       InFlight:InitSource(false)
     end)
