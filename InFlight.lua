@@ -184,7 +184,11 @@ function InFlight:SetupInFlight()
   SlashCmdList.INFLIGHT = function(arg1)
 
     if arg1 == "export" then
-      self:ExportDB()
+      if PTR_IssueReporter == nil then
+        self:ExportDB()
+      else
+        print("Only exporting from the live game client. PTR has been unreliable before.")
+      end
     else
       self:ShowOptions()
     end
@@ -411,12 +415,10 @@ function InFlight:LoadBulk()
   if select(4, GetBuildInfo()) >= 40000 then
 
 
-    -- Too many people still seem to have old data from before the
-    -- achievement boosts were taken into account.
-    -- So we start with a clean slate.
-    if InFlightDB.dbinit < 1101012 then
+    -- Stop accepting flight paths from PTR. These have been incorrect in the past.
+    if InFlightDB.dbinit < 1101015 then
       resetDB = true
-      InFlightDB.dbinit = 1101012
+      InFlightDB.dbinit = 1101015
     end
 
 
@@ -523,7 +525,8 @@ function InFlight:LoadBulk()
       end
     end
 
-    if found > 0 and (not InFlightDB.upload or InFlightDB.upload < time()) then
+    -- Not exporting flight times from PTR. They have been wrong before.
+    if PTR_IssueReporter == nil and found > 0 and (not InFlightDB.upload or InFlightDB.upload < time()) then
       Print(format("|cff208020- " .. L["FlightTimeContribute"] .. "|r", "|r" .. found .. "|cff208020"))
       InFlightDB.upload = time() + 604800  -- 1 week in seconds (60 * 60 * 24 * 7)
     end
@@ -1154,7 +1157,11 @@ function InFlight.ShowOptions()
         InFlightDB.global = {}
         ReloadUI()
       elseif k == "exporttimes" then
-        InFlight:ExportDB()
+        if PTR_IssueReporter == nil then
+          InFlight:ExportDB()
+        else
+          print("Only exporting from the live game client. PTR has been unreliable before.")
+        end
       end
     end
 
