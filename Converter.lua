@@ -1,4 +1,4 @@
-local folderName = ...
+local folderName, addon = ...
 local L = InFlight.L
 
 
@@ -529,7 +529,7 @@ function InFlight:MergeFactions(defaults)
       for i, k in pairs(defaults["Alliance"][nodeID]) do
         defaults["FactionslessZones"][nodeID][i] = k
       end
-      
+
       defaults["Alliance"][nodeID] = nil
     end
 
@@ -614,18 +614,38 @@ end
 
 
 
--- Paste uploaded user data here and uncomment ImportUserUpload(defaults, myImport, false) below.
-local myImport = {}
+-- ################################################################################################
+-- START: Uncomment to get new default data.
 
 
--- -- Uncomment to get new default data.
+-- -- Paste uploaded user data here and uncomment ImportUserUpload(defaults, myImport, false) below.
+-- local myImport = {}
+
+
 -- -- Set third argument to true, for imports that are not english.
 -- local defaultsGlobal = InFlight.defaults.global
 -- ImportUserUpload(defaultsGlobal, myImport, false)
 -- -- InFlight:MergeFactions(defaultsGlobal)
--- local exportText = GetExportText("global", defaultsGlobal, "  ")
+
+-- local exportText = ""
+
+-- -- pre-cata
+-- if select(4, GetBuildInfo()) < 40000 then
+
+  -- ImportUserUpload(addon.global_classic, myImport, false)
+  -- exportText = GetExportText("local global_classic", addon.global_classic, "")
+
+-- -- retail
+-- else
+  -- exportText = GetExportText("global", defaultsGlobal, "  ")
+-- end
+
 -- editbox:SetText(exportText)
 -- StaticPopup_Show(popupName, nil, nil, nil, outerFrame)
+
+
+-- END: Uncomment to get new default data.
+-- ################################################################################################
 
 
 

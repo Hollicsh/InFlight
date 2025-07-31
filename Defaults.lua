@@ -1,3 +1,5 @@
+local folderName, addon = ...
+
 InFlight.defaults = {
   profile = {
     p = "BOTTOM",
@@ -20448,7 +20450,7 @@ local global_classic = {
       [25] = 337,
       [29] = 199,
       [30] = 382,
-      [40] = 395,
+      [40] = 468,
       [42] = 196,
       [44] = 447,
       [48] = 590,
@@ -20469,11 +20471,11 @@ local global_classic = {
       [25] = 301,
       [29] = 429,
       [30] = 87,
-      [38] = 400,
+      [38] = 463,
       [42] = 200,
       [44] = 448,
       [48] = 532,
-      [53] = 577,
+      [53] = 669,
       [55] = 222,
       [58] = 510,
       [61] = 439,
@@ -20571,7 +20573,7 @@ local global_classic = {
       [23] = 217,
       [25] = 162,
       [29] = 311,
-      [30] = 309,
+      [30] = 347,
       [38] = 383,
       [40] = 222,
       [42] = 414,
@@ -20715,7 +20717,7 @@ local global_classic = {
       [18] = 462,
       [20] = 382,
       [21] = 70,
-      [56] = 286,
+      [56] = 350,
       [68] = 559,
       [70] = 77,
       [76] = 420,
@@ -20744,7 +20746,10 @@ local global_classic = {
       [38] = 273,
       [40] = 218,
       [42] = 248,
+      [44] = 248,
+      [48] = 333,
       [55] = 242,
+      [58] = 309,
       [61] = 242,
       [72] = 378,
       [79] = 325,
@@ -20759,7 +20764,7 @@ local global_classic = {
       [30] = 200,
       [38] = 424,
       [40] = 113,
-      [42] = 224,
+      [42] = 312,
       [44] = 559,
       [48] = 645,
       [53] = 689,
@@ -21308,6 +21313,11 @@ local global_classic = {
     },
   },
 }
+
+
+
+-- Make this available for export.
+addon.global_classic = global_classic
 
 for faction, factionNodes in pairs(global_classic) do
   for sourceNode, destNodes in pairs(factionNodes) do
