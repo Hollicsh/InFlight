@@ -178,42 +178,6 @@ end
 
 
 
-
-function InFlight:SetupInFlight()
-
-  SlashCmdList.INFLIGHT = function(arg1)
-
-    if arg1 == "export" then
-      if PTR_IssueReporter == nil then
-        self:ExportDB()
-      else
-        print("Only exporting from the live game client. PTR has been unreliable before.")
-      end
-    else
-      self:ShowOptions()
-    end
-
-  end
-  SLASH_INFLIGHT1 = "/inflight"
-
-  local panel = CreateFrame("Frame")
-  panel.name = "InFlight"
-  panel:SetScript("OnShow", function(this)
-    if InFlight.SetLayout then
-      InFlight:SetLayout(this)
-    end
-  end)
-
-
-  -- InterfaceOptions_AddCategory(panel)
-  local category = Settings.RegisterCanvasLayoutCategory(panel, "InFlight")
-  Settings.RegisterAddOnCategory(category)
-
-  InFlight.SetupInFlight = nil
-end
-
-
-
 -- LOCAL FUNCTIONS
 local function FormatTime(secs)  -- simple time format
   if not secs then
@@ -284,7 +248,7 @@ local function GetEstimatedTime(slot)  -- estimates flight times based on hops
       local dstNodes = GetDstNodes(taxiNodes[srcNode], playerFaction)
       if dstNodes then
         if not etimes[dstNode] and dstNodes[taxiNodes[dstNode]] then
-          etimes[dstNode] = etimes[srcNode] + dstNodes[taxiNodes[dstNode]] * InFlight:KhazAlgarFlightMasterFactor(taxiNodes[dstNode])
+          etimes[dstNode] = etimes[srcNode] + dstNodes[taxiNodes[dstNode]] * InFlight:KhazAlgarFlightMasterFactor(taxiNodes[dstNode]) * InFlight:RideLikeTheWindFactor()
           PrintD(taxiNodes[dstNode].."("..dstNode..") time:", FormatTime(etimes[srcNode]), "+", FormatTime(dstNodes[taxiNodes[dstNode]]), "=", FormatTime(etimes[dstNode]))
           nextNode[srcNode] = dstNode - 1
           prevNode[dstNode] = srcNode
@@ -331,7 +295,7 @@ local function postTaxiNodeOnButtonEnter(button) -- adds duration info to taxi n
   local dstNodes = GetDstNodes(taxiSrc, playerFaction)
   local duration = dstNodes and dstNodes[tmpTaxiDst]
   if duration then
-    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst))
+    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst) * InFlight:RideLikeTheWindFactor())
   else
     addDuration(GetEstimatedTime(id) or 0, true)
   end
@@ -348,12 +312,73 @@ local function postFlightNodeOnButtonEnter(button) -- adds duration info to flig
   local duration = dstNodes and dstNodes[tmpTaxiDst]
   if duration then
     -- gtt:AddLine("NodeID: "..button.taxiNodeData.nodeID, 0.2, 0.8, 0.2) -- TEST
-    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst))
+    addDuration(duration * InFlight:KhazAlgarFlightMasterFactor(tmpTaxiDst) * InFlight:RideLikeTheWindFactor())
   else
     -- gtt:AddLine("NodeID: "..button.taxiNodeData.nodeID, 0.2, 0.8, 0.2) -- TEST
     addDuration(GetEstimatedTime(button.taxiNodeData.slotIndex) or 0, true)
   end
 end
+
+
+
+function InFlight:SetupInFlight()
+
+  SlashCmdList.INFLIGHT = function(arg1)
+
+    if arg1 == "export" then
+      if PTR_IssueReporter == nil then
+        self:ExportDB()
+      else
+        print("Only exporting from the live game client. PTR has been unreliable before.")
+      end
+    else
+      self:ShowOptions()
+    end
+
+  end
+  SLASH_INFLIGHT1 = "/inflight"
+
+
+  -- Option panel.
+  local panel = CreateFrame("Frame")
+    
+  local t1 = panel:CreateFontString(nil, "ARTWORK")
+  t1:SetFontObject(GameFontNormalLarge)
+  t1:SetJustifyH("LEFT")
+  t1:SetJustifyV("TOP")
+  t1:SetPoint("TOPLEFT", 16, -16)
+  t1:SetText("|cff0040ffIn|cff00aaffFlight|r")
+  panel.tl = t1
+
+  local t2 = panel:CreateFontString(nil, "ARTWORK")
+  t2:SetFontObject(GameFontHighlight)
+  t2:SetJustifyH("LEFT")
+  t2:SetJustifyV("TOP")
+  SetPoints(t2, "TOPLEFT", t1, "BOTTOMLEFT", 0, -8, "RIGHT", panel, "RIGHT", -32, 0)
+  t2:SetNonSpaceWrap(true)
+  local function GetInfo(field)
+    return C_AddOns.GetAddOnMetadata("InFlight", field) or "N/A"
+  end
+  t2:SetFormattedText("|cff00aaffAuthor:|r %s\n|cff00aaffVersion:|r %s\n\n%s|r", GetInfo("Author"), GetInfo("Version"), GetInfo("Notes"))
+
+  local b = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+  b:SetText(_G.GAMEOPTIONS_MENU)
+  b:SetWidth(max(120, b:GetTextWidth() + 20))
+  b:SetScript("OnClick", InFlight.ShowOptions)
+  b:SetPoint("TOPLEFT", t2, "BOTTOMLEFT", -2, -8)
+  
+  panel.name = "InFlight"
+  
+  local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
+  -- Needed to be able to call `Settings.OpenToCategory("InFlight")`
+  category.ID = panel.name
+  Settings.RegisterAddOnCategory(category)
+
+  InFlight.SetupInFlight = nil
+end
+
+
+
 
 ----------------------------
 function InFlight.Print(...)  -- prefix chat messages
@@ -415,14 +440,14 @@ function InFlight:LoadBulk()
   if select(4, GetBuildInfo()) >= 40000 then
 
 
-    -- Stop accepting flight paths from PTR. These have been incorrect in the past.
-    if InFlightDB.dbinit < 1101015 then
+    -- Got to reset the user database after enabling MoP classic "Ride Like the Wind" speed boost.
+    if InFlightDB.dbinit < 1102001 then
       resetDB = true
-      InFlightDB.dbinit = 1101015
+      InFlightDB.dbinit = 1102001
     end
 
 
-    -- Check that this is the right version of the database to avoid corruption
+    -- Check that this is the right version of the database to avoid corruption.
     if InFlightDB.version ~= "post-cata" then
       -- Used to be called "retail", so we only reset flight points if it was anything else.
       if InFlightDB.version ~= "retail" then
@@ -583,7 +608,7 @@ function InFlight:LoadBulk()
 
     local dstNodes = GetDstNodes(taxiSrc, playerFaction)
     if dstNodes and dstNodes[taxiDst] and dstNodes[taxiDst] > 0 then  -- saved variables lookup
-      endTime = dstNodes[taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+      endTime = dstNodes[taxiDst] * InFlight:KhazAlgarFlightMasterFactor(taxiDst) * InFlight:RideLikeTheWindFactor()
       endText = FormatTime(endTime)
     else
       endTime = GetEstimatedTime(slot)
@@ -754,7 +779,7 @@ function InFlight:StartMiscFlight(src, dst)  -- called from InFlight_Load for sp
   local dstNodes = GetDstNodes(taxiSrc, playerFaction)
   endTime = dstNodes and dstNodes[dst]
   if endTime then
-     endTime = endTime * self:KhazAlgarFlightMasterFactor(taxiSrc)
+     endTime = endTime * self:KhazAlgarFlightMasterFactor(taxiSrc) * self:RideLikeTheWindFactor()
   end
   endText = FormatTime(endTime)
   self:StartTimer()
@@ -864,7 +889,7 @@ do  -- timer bar
           InFlight.db.global[faction][taxiSrc] = InFlight.db.global[faction][taxiSrc] or { name = taxiSrcName }
           local oldTime = InFlight.db.global[faction][taxiSrc][taxiDst]
           if oldTime then
-            oldTime = oldTime * InFlight:KhazAlgarFlightMasterFactor(taxiDst)
+            oldTime = oldTime * InFlight:KhazAlgarFlightMasterFactor(taxiDst) * InFlight:RideLikeTheWindFactor()
           end
           local newTime = floor(totalTime + 0.5)
 
@@ -888,7 +913,7 @@ do  -- timer bar
             newPlayerSaveData[faction][taxiSrc][taxiDst] = newTime
           end
 
-          InFlight.db.global[faction][taxiSrc][taxiDst] = floor(newTime / InFlight:KhazAlgarFlightMasterFactor(taxiDst) + 0.5)
+          InFlight.db.global[faction][taxiSrc][taxiDst] = floor(newTime / (InFlight:KhazAlgarFlightMasterFactor(taxiDst) * InFlight:RideLikeTheWindFactor()) + 0.5)
 
 
           if msg and profile.chatlog then
@@ -1056,39 +1081,6 @@ do  -- timer bar
   end
 end
 
----------------------------------
-function InFlight:SetLayout(this)  -- setups the options in the default interface options
----------------------------------
-  local t1 = this:CreateFontString(nil, "ARTWORK")
-  t1:SetFontObject(GameFontNormalLarge)
-  t1:SetJustifyH("LEFT")
-  t1:SetJustifyV("TOP")
-  t1:SetPoint("TOPLEFT", 16, -16)
-  t1:SetText("|cff0040ffIn|cff00aaffFlight|r")
-  this.tl = t1
-
-  local t2 = this:CreateFontString(nil, "ARTWORK")
-  t2:SetFontObject(GameFontHighlight)
-  t2:SetJustifyH("LEFT")
-  t2:SetJustifyV("TOP")
-  SetPoints(t2, "TOPLEFT", t1, "BOTTOMLEFT", 0, -8, "RIGHT", this, "RIGHT", -32, 0)
-  t2:SetNonSpaceWrap(true)
-  local function GetInfo(field)
-    return C_AddOns.GetAddOnMetadata("InFlight", field) or "N/A"
-  end
-
-  t2:SetFormattedText("|cff00aaffAuthor:|r %s\n|cff00aaffVersion:|r %s\n\n%s|r", GetInfo("Author"), GetInfo("Version"), GetInfo("Notes"))
-
-  local b = CreateFrame("Button", nil, this, "UIPanelButtonTemplate")
-  b:SetText(_G.GAMEOPTIONS_MENU)
-  b:SetWidth(max(120, b:GetTextWidth() + 20))
-  b:SetScript("OnClick", InFlight.ShowOptions)
-  b:SetPoint("TOPLEFT", t2, "BOTTOMLEFT", -2, -8)
-
-  this:SetScript("OnShow", nil)
-
-  self.SetLayout = nil
-end
 
 -- options table
 smed:Register("border", "Textured", "\\Interface\\None")  -- dummy border

@@ -308,6 +308,27 @@ function InFlight:KhazAlgarFlightMasterFactor(nodeID)
 end
 
 
+-- ##########################################################################################
+-- ########## Return factor to handle MoP classic "Ride Like the Wind" speed boost. #########
+-- ##########################################################################################
+
+function InFlight:RideLikeTheWindFactor()
+
+  -- TODO: Check again in WoD Classic (if it happens).
+  if LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_MISTS_OF_PANDARIA then
+    -- https://www.wowhead.com/mop-classic/spell=117983/ride-like-the-wind
+    if IsSpellKnown(117983) then
+      -- print("multiply by 0.8")
+      -- The spell says "increase by 25%". But the slow speed is actually 1.25 times the fast speed.
+      return 0.8
+    end
+  end
+
+  -- print("multiply by 1")
+  return 1
+end
+
+
 
 
 
