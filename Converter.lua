@@ -234,11 +234,11 @@ local function GetNodesInMap(parentMapId, nodes)
 
 
   -- Go through all map IDs.
-  for uiMapID = 1, 2500 do
+  for uiMapID = 1, 3000 do
 
     local mapInfo = C_Map.GetMapInfo(uiMapID)
 
-    -- Uncomment this to search for among all nodes.
+    -- Uncomment this to search among all nodes.
     -- if mapInfo and mapInfo.mapID then
     if mapInfo and mapInfo.mapID and FindAncestor(mapInfo.mapID, parentMapId) then
 
@@ -268,41 +268,59 @@ end
 local noFactionsZoneNodes = {}
 InFlight.noFactionsZoneNodes = noFactionsZoneNodes
 
-
--- Shadowlands
-GetNodesInMap(1550, noFactionsZoneNodes)
--- Not found on any map by GetTaxiNodesForMap().
-noFactionsZoneNodes[2528] = true   -- "Elysian Hold"
-noFactionsZoneNodes[2548] = true   -- "Sinfall"
-
-
--- Dragon Isles
--- (2057 works, but misses the following nodes)
---   2847-2851 The Nokhud Offensive
---   2860      Aberrus Upper Platform (???)
---   2902-2905 Emerald Dream
-GetNodesInMap(1978, noFactionsZoneNodes)
--- Not found on any map by GetTaxiNodesForMap().
-noFactionsZoneNodes[2804] = true   -- "Uktulut Backwater"
-
-
--- Khaz Algar
-
 -- We need this separately for the "Khaz Algar Flight Master" speed boost.
 local khazAlgarNodes = {}
 
--- (2248 does not work)
-GetNodesInMap(2274, khazAlgarNodes)
 
--- "Tranquil Strand" is on no map before you have completed the campaign quest.
-if not khazAlgarNodes[2970] then
-  khazAlgarNodes[2970] = true
+local function CreateNoFactionZoneNodes()
+  -- print("CreateNoFactionZoneNodes")
+  wipe(noFactionsZoneNodes)
+
+  -- Shadowlands
+  GetNodesInMap(1550, noFactionsZoneNodes)
+  -- Not found on any map by GetTaxiNodesForMap().
+  noFactionsZoneNodes[2528] = true   -- "Elysian Hold"
+  noFactionsZoneNodes[2548] = true   -- "Sinfall"
+
+
+  -- Dragon Isles
+  -- (2057 works, but misses the following nodes)
+  --   2847-2851 The Nokhud Offensive
+  --   2860      Aberrus Upper Platform (???)
+  --   2902-2905 Emerald Dream
+  GetNodesInMap(1978, noFactionsZoneNodes)
+  -- Not found on any map by GetTaxiNodesForMap().
+  noFactionsZoneNodes[2804] = true   -- "Uktulut Backwater"
+
+
+  -- Khaz Algar
+  -- We need this separately for the "Khaz Algar Flight Master" speed boost.
+  wipe(khazAlgarNodes)
+
+  -- (2248 does not work)
+  GetNodesInMap(2274, khazAlgarNodes)
+
+  -- "Tranquil Strand" is on no map before you have completed the campaign quest.
+  if not khazAlgarNodes[2970] then
+    khazAlgarNodes[2970] = true
+  end
+
+  for i, _ in pairs(khazAlgarNodes) do
+    noFactionsZoneNodes[i] = true
+  end
+
+  -- Uncomment to check if a specific flight point has been found.
+  -- print("Checking", noFactionsZoneNodes[2700])
+
+  -- Uncomment this to check a specific map for its flight points. 946 is "Cosmic".
+  -- local test = {}
+  -- GetNodesInMap(946, test)
+
 end
 
-for i, _ in pairs(khazAlgarNodes) do
-  noFactionsZoneNodes[i] = true
-end
-
+local reloadFrame = CreateFrame("Frame")
+reloadFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+reloadFrame:SetScript("OnEvent", CreateNoFactionZoneNodes)
 
 
 
@@ -665,7 +683,9 @@ end
 -- -- Set third argument to true, for imports that are not english.
 -- local defaultsGlobal = InFlight.defaults.global
 -- ImportUserUpload(defaultsGlobal, myImport, false)
--- -- InFlight:MergeFactions(defaultsGlobal)
+
+-- CreateNoFactionZoneNodes()
+-- InFlight:MergeFactions(defaultsGlobal)
 
 -- local exportText = ""
 
