@@ -684,6 +684,8 @@ end
 -- local defaultsGlobal = InFlight.defaults.global
 -- ImportUserUpload(defaultsGlobal, myImport, false)
 
+
+-- -- Make sure to be on a character that has all maps (particularly Shadowlands) unlocked.
 -- CreateNoFactionZoneNodes()
 -- InFlight:MergeFactions(defaultsGlobal)
 

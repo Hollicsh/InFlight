@@ -440,10 +440,10 @@ function InFlight:LoadBulk()
   if select(4, GetBuildInfo()) >= 40000 then
 
 
-    -- Got to reset the user database after enabling MoP classic "Ride Like the Wind" speed boost.
-    if InFlightDB.dbinit < 1102001 then
+    -- Got to reset the user database after fix for factionless zones.
+    if InFlightDB.dbinit < 1102004 then
       resetDB = true
-      InFlightDB.dbinit = 1102001
+      InFlightDB.dbinit = 1102004
     end
 
 
