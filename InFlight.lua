@@ -1101,22 +1101,32 @@ function InFlight.ShowOptions()
           button1 = ACCEPT, button2 = CANCEL,
           hasEditBox = 1, maxLetters = 12,
           OnAccept = function(self)
-            profile.totext = strtrim(self.editBox:GetText())
+            -- self.editBox is no longer accessible since 11.2.
+            local editBox = self.editBox or _G[self:GetName() .. "EditBox"]
+            profile.totext = strtrim(editBox:GetText())
             InFlight:UpdateLook()
           end,
 
           OnShow = function(self)
-            self.editBox:SetText(profile.totext)
-            self.editBox:SetFocus()
+            -- self.editBox is no longer accessible since 11.2.
+            local editBox = self.editBox or _G[self:GetName() .. "EditBox"]
+            editBox:SetText(profile.totext)
+            editBox:SetFocus()
           end,
 
           OnHide = function(self)
-            self.editBox:SetText("")
+            -- self.editBox is no longer accessible since 11.2.
+            local editBox = self.editBox or _G[self:GetName() .. "EditBox"]
+            editBox:SetText("")
           end,
 
           EditBoxOnEnterPressed = function(self)
             local parent = self:GetParent()
-            profile.totext = strtrim(parent.editBox:GetText())
+            
+            -- self.editBox is no longer accessible since 11.2.
+            local editBox = parent.editBox or _G[parent:GetName() .. "EditBox"]
+            profile.totext = strtrim(editBox:GetText())
+            
             parent:Hide()
             InFlight:UpdateLook()
           end,
